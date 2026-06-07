@@ -203,6 +203,107 @@ function SeverityDot({ s }) {
   return <span style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:col,marginRight:6,flexShrink:0,marginTop:5}}/>;
 }
 
+
+function StickFigure({pose}){
+  const figures = {
+    wall: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={10} y2={20} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={50} y2={20} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={20} y2={70} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={40} y2={70} stroke={C.accent} strokeWidth={2}/>
+        <rect x={52} y={5} width={4} height={70} fill={C.accent} opacity={0.4}/>
+        <line x1={50} y1={20} x2={52} y2={20} stroke={C.accent} strokeWidth={2}/>
+      </svg>
+    ),
+    walk: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={12} y2={32} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={48} y2={18} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={18} y2={65} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={44} y2={62} stroke={C.accent} strokeWidth={2}/>
+        <line x1={18} y1={65} x2={12} y2={75} stroke={C.accent} strokeWidth={2}/>
+        <line x1={44} y1={62} x2={50} y2={72} stroke={C.accent} strokeWidth={2}/>
+        {[0,1,2].map(i=><ellipse key={i} cx={10+i*8} cy={78} rx={3} ry={1} fill={C.accent} opacity={0.3}/>)}
+      </svg>
+    ),
+    shoulder: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <path d="M 30 25 Q 10 15 15 30" fill="none" stroke={C.accent} strokeWidth={2}/>
+        <path d="M 30 25 Q 50 15 45 30" fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={22} y2={68} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={38} y2={68} stroke={C.accent} strokeWidth={2}/>
+        <path d="M 20 22 Q 10 10 20 8 Q 30 6 25 18" fill="none" stroke={C.amber} strokeWidth={1.5} strokeDasharray="2,1"/>
+      </svg>
+    ),
+    squat: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={8} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={15} x2={30} y2={38} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={12} y2={22} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={48} y2={22} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={38} x2={18} y2={55} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={38} x2={42} y2={55} stroke={C.accent} strokeWidth={2}/>
+        <line x1={18} y1={55} x2={15} y2={70} stroke={C.accent} strokeWidth={2}/>
+        <line x1={42} y1={55} x2={45} y2={70} stroke={C.accent} strokeWidth={2}/>
+        <line x1={12} y1={70} x2={48} y2={70} stroke={C.accent} strokeWidth={1} opacity={0.3}/>
+      </svg>
+    ),
+    stretch: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={22} x2={5} y2={30} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={22} x2={55} y2={30} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={22} y2={68} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={38} y2={68} stroke={C.accent} strokeWidth={2}/>
+        <line x1={5} y1={30} x2={2} y2={40} stroke={C.accent} strokeWidth={2}/>
+        <line x1={55} y1={30} x2={58} y2={40} stroke={C.accent} strokeWidth={2}/>
+      </svg>
+    ),
+    balance: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={12} y2={35} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={48} y2={35} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={30} y2={70} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={48} y2={58} stroke={C.accent} strokeWidth={2}/>
+        <line x1={48} y1={58} x2={52} y2={65} stroke={C.accent} strokeWidth={2}/>
+        <line x1={27} y1={70} x2={33} y2={70} stroke={C.accent} strokeWidth={2}/>
+      </svg>
+    ),
+    default: (
+      <svg width={60} height={80} viewBox="0 0 60 80">
+        <circle cx={30} cy={10} r={7} fill="none" stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={17} x2={30} y2={45} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={14} y2={35} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={25} x2={46} y2={35} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={22} y2={68} stroke={C.accent} strokeWidth={2}/>
+        <line x1={30} y1={45} x2={38} y2={68} stroke={C.accent} strokeWidth={2}/>
+      </svg>
+    ),
+  };
+  return figures[pose] || figures.default;
+}
+
+function getPose(name){
+  if(!name) return 'default';
+  if(name.includes('壁')) return 'wall';
+  if(name.includes('歩き')||name.includes('歩行')||name.includes('大股')) return 'walk';
+  if(name.includes('肩')||name.includes('回し')||name.includes('肩甲')) return 'shoulder';
+  if(name.includes('スクワット')||name.includes('膝')||name.includes('立ち上')) return 'squat';
+  if(name.includes('ストレッチ')||name.includes('伸ば')) return 'stretch';
+  if(name.includes('バランス')||name.includes('片足')||name.includes('立位')) return 'balance';
+  return 'default';
+}
+
 function ExerciseCard({ ex, idx }) {
   const [open,setOpen]=useState(false);
   const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
@@ -222,6 +323,9 @@ function ExerciseCard({ ex, idx }) {
       </div>
       {open&&(
         <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12,padding:"8px",background:C.surface,borderRadius:10}}>
+            <StickFigure pose={getPose(ex.name)}/>
+          </div>
           {ex.steps.map((s,i)=>(
             <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
               <span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span>
