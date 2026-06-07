@@ -89,6 +89,27 @@ ${historyBlock}
 };
 
 // ─── Sub components ───────────────────────────────────────────────────────────
+
+function RadarChart({gait}){
+  const labels=["歩行リズム","歩幅","体幹・姿勢","腕振り","足のクリアランス"];
+  const sc=v=>v&&(v.includes("良好")||v.includes("規則的")||v.includes("確保"))?85:v&&v.includes("やや")?60:v&&(v.includes("不規則")||v.includes("小刻み")||v.includes("前傾")||v.includes("制限"))?40:65;
+  const vals=[sc(gait.cadence),sc(gait.stride),sc(gait.posture),sc(gait.armSwing),sc(gait.footClearance)];
+  const cx=110,cy=110,r=75,n=5;
+  const pt=(i,rad)=>({x:cx+rad*Math.cos((-90+360/n*i)*Math.PI/180),y:cy+rad*Math.sin((-90+360/n*i)*Math.PI/180)});
+  const col=C.accent;
+  const dataPath=vals.map((v,i)=>{const p=pt(i,r*v/100);return(i===0?"M ":"L ")+p.x+" "+p.y;}).join(" ")+" Z";
+  return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 0"}}>
+      <svg width={220} height={240} style={{overflow:"visible"}}>
+        {[25,50,75,100].map(p=>{const ps=labels.map((_,i)=>pt(i,r*p/100));return(<path key={p} d={ps.map((q,i)=>(i===0?"M ":"L ")+q.x+" "+q.y).join(" ")+" Z"} fill="none" stroke={C.border} strokeWidth={1}/>);})}
+        {labels.map((_,i)=>(<line key={i} x1={cx} y1={cy} x2={pt(i,r).x} y2={pt(i,r).y} stroke={C.border} strokeWidth={1}/>))}
+        <path d={dataPath} fill={col+"33"} stroke={col} strokeWidth={2}/>
+        {vals.map((v,i)=>{const p=pt(i,r*v/100);return(<circle key={i} cx={p.x} cy={p.y} r={4} fill={col} stroke={C.bg} strokeWidth={2}/>);})}
+        {labels.map((lb,i)=>{const p=pt(i,r+26);return(<text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill={C.mutedLight} fontFamily="Noto Sans JP,sans-serif">{lb}</text>);})}
+      </svg>
+    </div>
+  );
+}
 function ScoreArc({ score }) {
   const size=160, cx=80, cy=80, r=62;
   const angle = -210 + (score/100)*240;
@@ -619,7 +640,7 @@ export default function WalkingVideoAnalyzer() {
                 </div>
               )}
               <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div>
+                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><RadarChart gait={result.gait}/>
                 <GaitMetricBar label="歩行リズム" value={result.gait.cadence} color={C.accent}/>
                 <GaitMetricBar label="歩幅" value={result.gait.stride} color={C.blue}/>
                 <GaitMetricBar label="体幹・姿勢" value={result.gait.posture} color={C.amber}/>
