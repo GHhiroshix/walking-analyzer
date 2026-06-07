@@ -240,12 +240,20 @@ function ExerciseCard({ ex, idx }) {
       {open&&(
         <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
           {(()=>{const ic=getExerciseIcon(ex.name);return(
-            <div style={{display:"flex",alignItems:"center",gap:12,background:C.surface,borderRadius:12,padding:"12px 16px",marginBottom:14}}>
-              <div style={{width:56,height:56,borderRadius:16,background:ic.color+"22",border:`2px solid ${ic.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>{ic.icon}</div>
-              <div>
-                <div style={{fontSize:11,color:ic.color,fontWeight:700,letterSpacing:1,marginBottom:2}}>{ic.label}</div>
-                <div style={{fontSize:12,color:C.mutedLight,lineHeight:1.5}}>{ex.target}を鍛えて<br/>{ex.effect.slice(0,20)}...</div>
-              </div>
+            <div style={{
+              width:"100%",borderRadius:14,marginBottom:16,overflow:"hidden",
+              background:`linear-gradient(135deg, ${ic.color}33 0%, ${ic.color}11 100%)`,
+              border:`1.5px solid ${ic.color}44`,
+              display:"flex",flexDirection:"column",alignItems:"center",
+              padding:"20px 16px 16px",gap:8,
+            }}>
+              <div style={{fontSize:64,lineHeight:1}}>{ic.icon}</div>
+              <div style={{fontSize:15,fontWeight:900,color:ic.color,letterSpacing:1}}>{ic.label}</div>
+              <div style={{
+                fontSize:12,color:C.text,textAlign:"center",lineHeight:1.7,
+                background:ic.color+"18",borderRadius:8,padding:"6px 12px",
+                border:`1px solid ${ic.color}22`,
+              }}>{ex.target} ／ {ex.duration}</div>
             </div>
           );})()}
           {ex.steps.map((s,i)=>(
