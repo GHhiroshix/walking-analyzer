@@ -327,7 +327,7 @@ export default function WalkingVideoAnalyzer() {
         const data = await resp.json();
         if (data.error) throw new Error(data.error.message||"APIエラー");
         const raw = (data.content||[]).map(b=>b.text||"").join("");
-        const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
+        const rawFixed = raw.replace(/ベビーカー/g, "シルバーカー"); const parsed = JSON.parse(rawFixed.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
         const record={date:new Date().toISOString(),score:parsed.score,summary:parsed.summary,issues:parsed.issues,exercises:parsed.exercises};
