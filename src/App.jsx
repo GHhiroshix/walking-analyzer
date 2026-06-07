@@ -252,6 +252,19 @@ export default function WalkingVideoAnalyzer() {
     l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap";
     document.head.appendChild(l);
+    // Print styles
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @media print {
+        body { background: #fff !important; color: #000 !important; }
+        button { display: none !important; }
+        .no-print { display: none !important; }
+        * { color: #000 !important; background: #fff !important; border-color: #ccc !important; box-shadow: none !important; }
+        img { max-width: 100% !important; }
+        @page { margin: 15mm; size: A4; }
+      }
+    `;
+    document.head.appendChild(style);
     setUsers(loadUsers());
   }, []);
 
@@ -641,7 +654,8 @@ export default function WalkingVideoAnalyzer() {
               ))}
             </div>
           )}
-          <button onClick={restart} style={{width:"100%",marginTop:20,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
+          <button onClick={()=>window.print()} style={{width:"100%",marginTop:20,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",boxShadow:`0 4px 20px ${C.blue}33`}}>🖨️ 印刷・PDF保存</button>
+          <button onClick={restart} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
         <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
         </div>
       </div></div>
