@@ -434,6 +434,7 @@ export default function WalkingVideoAnalyzer() {
             </div>
           </div>
         )}
+        <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginBottom:12,padding:"12px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",gap:8}}>
