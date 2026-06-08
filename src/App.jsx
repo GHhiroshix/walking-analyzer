@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
+// Handle email confirmation redirect
+if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
+  supabase.auth.getSession().then(() => {
+    window.location.href = window.location.origin;
+  });
+}
+
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
   bg: "#07080a", surface: "#0f1318", panel: "#141a22", border: "#1c2630",
