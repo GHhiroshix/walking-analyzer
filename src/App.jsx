@@ -563,6 +563,15 @@ export default function WalkingVideoAnalyzer() {
     `;
     document.head.appendChild(style);
     setUsers(loadUsers());
+    // Supabase auth
+    const _t = setTimeout(() => setAuthLoading(false), 4000);
+    supabase.auth.getSession().then(({data:{session}}) => {
+      clearTimeout(_t); setSession(session); setAuthLoading(false);
+    }).catch(() => { clearTimeout(_t); setAuthLoading(false); });
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,s) => {
+      setSession(s); setAuthLoading(false);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const wrap = {minHeight:"100vh",minHeight:"-webkit-fill-available",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px max(48px, env(safe-area-inset-bottom))",paddingLeft:"max(16px, env(safe-area-inset-left))",paddingRight:"max(16px, env(safe-area-inset-right))"};
