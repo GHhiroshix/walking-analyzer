@@ -882,8 +882,55 @@ export default function WalkingVideoAnalyzer() {
             </div>
           )}
           <button onClick={()=>{
-            const pv = document.getElementById("print-view");
-            if(pv){ pv.style.display="block"; window.print(); setTimeout(()=>{ pv.style.display="none"; },1000); }
+            const r = result;
+            const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>歩行解析レポート - ${userName}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+            <style>
+              body{font-family:'Noto Sans JP',sans-serif;color:#111;background:#fff;margin:0;padding:16px 20px;max-width:720px;margin:0 auto;}
+              h1{font-size:13px;color:#888;letter-spacing:2px;font-weight:400;margin:0 0 4px;}
+              .header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #00c48c;padding-bottom:12px;margin-bottom:18px;}
+              .name{font-size:22px;font-weight:900;}
+              .sub{font-size:12px;color:#555;margin-top:3px;}
+              .score-box{text-align:center;background:#f8f8f8;border-radius:10px;padding:8px 18px;border:2px solid #00c48c;}
+              .score-num{font-size:40px;font-weight:900;color:#00c48c;line-height:1;}
+              .score-label{font-size:9px;color:#888;letter-spacing:2px;}
+              .summary{background:#f0faf6;border-radius:8px;padding:10px 14px;margin-bottom:16px;border-left:4px solid #00c48c;}
+              .section-title{font-size:13px;font-weight:700;border-bottom:1px solid #ddd;padding-bottom:4px;margin:16px 0 10px;}
+              table{width:100%;border-collapse:collapse;font-size:12px;}
+              td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
+              td:first-child{font-weight:700;color:#555;width:110px;}
+              .issue{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;font-size:12px;}
+              .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+              .ex-card{border:1px solid #e0e0e0;border-radius:8px;padding:10px 12px;margin-bottom:10px;break-inside:avoid;}
+              .ex-title{font-size:13px;font-weight:900;margin-bottom:2px;}
+              .ex-sub{font-size:11px;color:#888;margin-bottom:8px;}
+              ol{margin:0 0 8px 16px;padding:0;font-size:12px;}
+              li{margin-bottom:3px;line-height:1.6;}
+              .effect{font-size:11px;color:#00804a;background:#f0faf6;padding:4px 8px;border-radius:4px;}
+              .tip{display:flex;gap:8px;margin-bottom:6px;font-size:12px;align-items:flex-start;}
+              .tip-num{width:20px;height:20px;border-radius:4px;background:#f0faf6;color:#00c48c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+              .footer{border-top:1px solid #ddd;padding-top:8px;margin-top:20px;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
+              .page-break{page-break-before:always;}
+              @media print{@page{margin:12mm;size:A4 portrait;}}
+              .aids-badge{background:#e8f4ff;border:1px solid #4da6ff;border-radius:100px;padding:3px 10px;font-size:11px;color:#2266cc;display:inline-block;margin-right:4px;}
+            </style></head><body>
+            <div class="header">
+              <div><h1>歩行動作AI解析レポート</h1><div class="name">${userName} 様</div><div class="sub">測定日：${new Date().toLocaleDateString('ja-JP')}　／　${getUserHistory(userId).length}回目の測定</div></div>
+              <div class="score-box"><div class="score-num" style="color:${r.score>=75?'#00c48c':r.score>=50?'#f5a623':'#ff4d6d'}">${r.score}</div><div class="score-label">GAIT SCORE</div></div>
+            </div>
+            <div class="summary"><b style="color:#00c48c">総合評価：</b>${r.summary}${r.progress?'<br><span style="font-size:12px;color:#555">前回比：'+r.progress+'</span>':''}</div>
+            ${r.aids&&r.aids.detected&&r.aids.detected.length>0?'<div class="section-title">補助具・手すり</div><div style="margin-bottom:16px">'+r.aids.detected.map(a=>'<span class="aids-badge">🦯 '+a+'</span>').join('')+(r.aids.usage?'<div style="font-size:12px;margin-top:8px;color:#333">使い方：'+r.aids.usage+'</div>':'')+(r.aids.recommendation?'<div style="font-size:12px;margin-top:4px;color:#c07000">💡 '+r.aids.recommendation+'</div>':'')+'</div>':''}
+            ${r.gait?'<div class="section-title">歩行指標</div><table><tbody><tr><td>歩行リズム</td><td>'+r.gait.cadence+'</td></tr><tr><td>歩幅</td><td>'+r.gait.stride+'</td></tr><tr><td>体幹・姿勢</td><td>'+r.gait.posture+'</td></tr><tr><td>腕振り</td><td>'+r.gait.armSwing+'</td></tr><tr><td>足のクリアランス</td><td>'+r.gait.footClearance+'</td></tr></tbody></table>':''}
+            ${r.issues&&r.issues.length>0?'<div class="section-title">課題</div>'+r.issues.map(i=>'<div class="issue"><div class="dot" style="background:'+(i.severity==="high"?"#ff4d6d":i.severity==="medium"?"#f5a623":"#00c48c")+'"></div><div><b>'+i.title+'</b><br><span style="color:#555">'+i.detail+'</span></div></div>').join(''):''}
+            <div class="page-break"></div>
+            ${r.exercises&&r.exercises.length>0?'<div class="section-title">推奨体操プログラム</div>'+r.exercises.map((ex,i)=>'<div class="ex-card"><div style="display:flex;justify-content:space-between"><div><div class="ex-title">'+ex.name+'</div><div class="ex-sub">'+ex.target+' ／ '+ex.duration+'</div></div><span style="font-size:10px;background:#f0faf6;color:#00c48c;border:1px solid #00c48c;border-radius:4px;padding:2px 8px;height:fit-content">体操'+(i+1)+'</span></div><ol>'+ex.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="effect">💡 '+ex.effect+'</div></div>').join(''):''}
+            ${r.lifestyle&&r.lifestyle.length>0?'<div class="section-title">生活アドバイス</div>'+r.lifestyle.map((tip,i)=>'<div class="tip"><div class="tip-num">'+(i+1)+'</div><div>'+tip+'</div></div>').join(''):''}
+            <div class="footer"><span>歩行動作AI解析アプリ — walking-analyzer.vercel.app</span><span>※本レポートはAIによる参考情報です。医療診断の代替ではありません。</span></div>
+            </body></html>`;
+            const w = window.open('','_blank','width=800,height=900');
+            w.document.write(html);
+            w.document.close();
+            w.onload = ()=>{ w.focus(); w.print(); };
           }} style={{width:"100%",marginTop:8,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🖨️ 印刷・PDF保存</button>
           <PrintView result={result} userName={userName} history={getUserHistory(userId)}/>
           <button onClick={restart} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
