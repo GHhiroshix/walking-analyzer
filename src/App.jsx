@@ -668,6 +668,15 @@ export default function WalkingVideoAnalyzer() {
     setUsers(loadUsers());
   };
 
+  // ── AUTH CHECK ─────────────────────────────────────────────────────────────
+  if (authLoading) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{color:C.accent,fontSize:16}}>読み込み中...</div>
+    </div>
+  );
+
+  if (!session) return <LoginScreen onLogin={()=>setAuthLoading(true)}/>;
+
   // ── CONSENT ───────────────────────────────────────────────────────────────
   if (phase==="consent") {
     const allChecked = Object.values(checks).every(Boolean);
