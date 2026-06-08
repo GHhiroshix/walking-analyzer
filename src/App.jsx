@@ -205,6 +205,16 @@ function SeverityDot({ s }) {
 
 
 
+
+function getExerciseImage(name){
+  if(!name) return null;
+  if(name.includes("ストレッチ")||name.includes("伸ば")||name.includes("前屈")) return "/exercises/stretch_man.png";
+  if(name.includes("体操")||name.includes("側屈")||name.includes("横")||name.includes("肩甲")||name.includes("肩")||name.includes("回し")) return "/exercises/taisou_oldwoman.png";
+  if(name.includes("アキレス")||name.includes("ふくらはぎ")||name.includes("大股")||name.includes("歩き")||name.includes("股関節")||name.includes("踏み出")) return "/exercises/achilles_old_woman.png";
+  if(name.includes("バランス")||name.includes("片足")||name.includes("立位")||name.includes("スクワット")||name.includes("膝")||name.includes("姿勢")) return "/exercises/achilles_old_man.png";
+  return "/exercises/taisou_oldwoman.png";
+}
+
 function getExerciseIcon(name){
   if(!name) return {icon:"🏃",color:"#39e0b0",label:"体操"};
   if(name.includes("壁")) return {icon:"🧱",color:"#4da6ff",label:"姿勢改善"};
@@ -239,23 +249,36 @@ function ExerciseCard({ ex, idx }) {
       </div>
       {open&&(
         <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
-          {(()=>{const ic=getExerciseIcon(ex.name);return(
-            <div style={{
-              width:"100%",borderRadius:14,marginBottom:16,overflow:"hidden",
-              background:`linear-gradient(135deg, ${ic.color}33 0%, ${ic.color}11 100%)`,
-              border:`1.5px solid ${ic.color}44`,
-              display:"flex",flexDirection:"column",alignItems:"center",
-              padding:"20px 16px 16px",gap:8,
-            }}>
-              <div style={{fontSize:64,lineHeight:1}}>{ic.icon}</div>
-              <div style={{fontSize:15,fontWeight:900,color:ic.color,letterSpacing:1}}>{ic.label}</div>
+          {(()=>{
+            const ic=getExerciseIcon(ex.name);
+            const img=getExerciseImage(ex.name);
+            return(
               <div style={{
-                fontSize:12,color:C.text,textAlign:"center",lineHeight:1.7,
-                background:ic.color+"18",borderRadius:8,padding:"6px 12px",
-                border:`1px solid ${ic.color}22`,
-              }}>{ex.target} ／ {ex.duration}</div>
-            </div>
-          );})()}
+                width:"100%",borderRadius:14,marginBottom:16,overflow:"hidden",
+                background:`linear-gradient(135deg, ${ic.color}22 0%, ${C.surface} 100%)`,
+                border:`1.5px solid ${ic.color}44`,
+              }}>
+                {img && (
+                  <div style={{
+                    width:"100%",display:"flex",justifyContent:"center",
+                    background:`linear-gradient(180deg, ${ic.color}18 0%, ${C.surface} 100%)`,
+                    padding:"16px 0 0",
+                  }}>
+                    <img src={img} alt={ex.name}
+                      style={{height:140,objectFit:"contain",filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.4))"}}
+                    />
+                  </div>
+                )}
+                <div style={{padding:"12px 16px 14px",display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{fontSize:28}}>{ic.icon}</div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:900,color:ic.color}}>{ic.label}</div>
+                    <div style={{fontSize:11,color:C.mutedLight,marginTop:2}}>{ex.target} ／ {ex.duration}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {ex.steps.map((s,i)=>(
             <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
               <span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span>
