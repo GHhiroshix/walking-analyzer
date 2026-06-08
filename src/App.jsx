@@ -315,9 +315,11 @@ function PrintView({result, userName, history}){
     <div id="print-view" style={{display:"none"}}>
       <style>{`
         @media print {
-          body > * { display: none !important; }
-          #print-view { display: block !important; }
-          #print-view * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body * { visibility: hidden; }
+          #print-view, #print-view * { visibility: visible; }
+          #print-view { position: fixed; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
           @page { margin: 12mm; size: A4 portrait; }
           .page-break { page-break-before: always; }
         }
