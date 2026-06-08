@@ -306,6 +306,150 @@ function FrameStrip({ frames, current, onSelect }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
+
+function PrintView({result, userName, history}){
+  const today = formatDate(new Date().toISOString());
+  const score = result.score;
+  const scoreCol = score>=75?"#00c48c":score>=50?"#f5a623":"#ff4d6d";
+  return(
+    <div id="print-view" style={{display:"none"}}>
+      <style>{`
+        @media print {
+          body > * { display: none !important; }
+          #print-view { display: block !important; }
+          #print-view * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { margin: 12mm; size: A4 portrait; }
+          .page-break { page-break-before: always; }
+        }
+      `}</style>
+      <div style={{fontFamily:"Noto Sans JP,sans-serif",color:"#111",background:"#fff",maxWidth:700,margin:"0 auto"}}>
+
+        {/* Header */}
+        <div style={{borderBottom:"3px solid #00c48c",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+          <div>
+            <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:4}}>歩行動作AI解析レポート</div>
+            <div style={{fontSize:22,fontWeight:900,color:"#111"}}>{userName} 様</div>
+            <div style={{fontSize:12,color:"#555",marginTop:4}}>測定日：{today}　／　測定回数：{history.length}回目</div>
+          </div>
+          <div style={{textAlign:"center",background:"#f8f8f8",borderRadius:12,padding:"10px 20px",border:"2px solid #00c48c"}}>
+            <div style={{fontSize:42,fontWeight:900,color:scoreCol,lineHeight:1}}>{score}</div>
+            <div style={{fontSize:10,color:"#888",letterSpacing:2}}>GAIT SCORE</div>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div style={{background:"#f0faf6",borderRadius:8,padding:"10px 16px",marginBottom:20,borderLeft:"4px solid #00c48c"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#00c48c",marginBottom:4}}>総合評価</div>
+          <div style={{fontSize:14,color:"#111"}}>{result.summary}</div>
+          {result.progress && <div style={{fontSize:12,color:"#555",marginTop:6}}>前回比：{result.progress}</div>}
+        </div>
+
+        {/* Aids */}
+        {result.aids && result.aids.detected && result.aids.detected.length > 0 && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>補助具・手すり</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
+              {result.aids.detected.map((a,i)=>(
+                <span key={i} style={{background:"#e8f4ff",border:"1px solid #4da6ff",borderRadius:100,padding:"3px 12px",fontSize:12,color:"#2266cc"}}>🦯 {a}</span>
+              ))}
+            </div>
+            {result.aids.usage && <div style={{fontSize:12,color:"#333",marginBottom:4}}>使い方：{result.aids.usage}</div>}
+            {result.aids.recommendation && <div style={{fontSize:12,color:"#c07000"}}>💡 {result.aids.recommendation}</div>}
+          </div>
+        )}
+
+        {/* Gait metrics */}
+        {result.gait && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>歩行指標</div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <tbody>
+                {[
+                  ["歩行リズム",result.gait.cadence],
+                  ["歩幅",result.gait.stride],
+                  ["体幹・姿勢",result.gait.posture],
+                  ["腕振り",result.gait.armSwing],
+                  ["足のクリアランス",result.gait.footClearance],
+                ].map(([label,val])=>(
+                  <tr key={label} style={{borderBottom:"1px solid #f0f0f0"}}>
+                    <td style={{padding:"6px 8px",fontWeight:700,color:"#555",width:120,whiteSpace:"nowrap"}}>{label}</td>
+                    <td style={{padding:"6px 8px",color:"#111"}}>{val}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Issues */}
+        {result.issues && result.issues.length > 0 && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>課題</div>
+            {result.issues.map((issue,i)=>{
+              const col = issue.severity==="high"?"#ff4d6d":issue.severity==="medium"?"#f5a623":"#00c48c";
+              return(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0,marginTop:5}}/>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#111"}}>{issue.title}</div>
+                    <div style={{fontSize:11,color:"#555"}}>{issue.detail}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Page break */}
+        <div className="page-break"/>
+
+        {/* Exercises */}
+        {result.exercises && result.exercises.length > 0 && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:12}}>推奨体操プログラム</div>
+            {result.exercises.map((ex,i)=>(
+              <div key={i} style={{marginBottom:16,padding:"12px 14px",border:"1px solid #e0e0e0",borderRadius:8,breakInside:"avoid"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:900,color:"#111"}}>{ex.name}</div>
+                    <div style={{fontSize:11,color:"#888",marginTop:2}}>{ex.target} ／ {ex.duration}</div>
+                  </div>
+                  <span style={{fontSize:10,background:"#f0faf6",color:"#00c48c",border:"1px solid #00c48c",borderRadius:4,padding:"2px 8px",whiteSpace:"nowrap"}}>体操{i+1}</span>
+                </div>
+                <ol style={{margin:"0 0 8px 16px",padding:0}}>
+                  {ex.steps.map((s,j)=>(
+                    <li key={j} style={{fontSize:12,color:"#333",marginBottom:4,lineHeight:1.6}}>{s}</li>
+                  ))}
+                </ol>
+                <div style={{fontSize:11,color:"#00804a",background:"#f0faf6",padding:"5px 10px",borderRadius:4}}>💡 {ex.effect}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Lifestyle */}
+        {result.lifestyle && result.lifestyle.length > 0 && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>生活アドバイス</div>
+            {result.lifestyle.map((tip,i)=>(
+              <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                <span style={{width:20,height:20,borderRadius:4,background:"#f0faf6",color:"#00c48c",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
+                <div style={{fontSize:12,color:"#333",lineHeight:1.6}}>{tip}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{borderTop:"1px solid #ddd",paddingTop:10,marginTop:20,display:"flex",justifyContent:"space-between",fontSize:10,color:"#aaa"}}>
+          <span>歩行動作AI解析アプリ — walking-analyzer.vercel.app</span>
+          <span>※本レポートはAIによる参考情報です。医療診断の代替ではありません。</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WalkingVideoAnalyzer() {
   const [phase, setPhase] = useState("consent");
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
@@ -735,7 +879,10 @@ export default function WalkingVideoAnalyzer() {
               ))}
             </div>
           )}
-          <button onClick={()=>window.print()} style={{width:"100%",marginTop:8,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🖨️ 印刷・PDF保存</button>
+          <button onClick={()=>{
+            const pv = document.getElementById("print-view");
+            if(pv){ pv.style.display="block"; window.print(); setTimeout(()=>{ pv.style.display="none"; },1000); }
+          }} style={{width:"100%",marginTop:8,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🖨️ 印刷・PDF保存</button>
           <button onClick={restart} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
         <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
         </div>
