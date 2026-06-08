@@ -883,6 +883,7 @@ export default function WalkingVideoAnalyzer() {
             const pv = document.getElementById("print-view");
             if(pv){ pv.style.display="block"; window.print(); setTimeout(()=>{ pv.style.display="none"; },1000); }
           }} style={{width:"100%",marginTop:8,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🖨️ 印刷・PDF保存</button>
+          <PrintView result={result} userName={userName} history={getUserHistory(userId)}/>
           <button onClick={restart} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
         <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
         </div>
