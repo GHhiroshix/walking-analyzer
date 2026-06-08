@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "./supabase";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
@@ -452,7 +453,79 @@ function PrintView({result, userName, history}){
   );
 }
 
+
+function LoginScreen({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState("login"); // login | signup
+
+  const handleSubmit = async () => {
+    if (!email || !password) { setError("メールアドレスとパスワードを入力してください"); return; }
+    setLoading(true); setError(null);
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setError("確認メールを送信しました。メールを確認してください。");
+        setMode("login");
+        return;
+      }
+      onLogin();
+    } catch (e) {
+      setError(e.message || "エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+      <div style={{width:"100%",maxWidth:400}}>
+        <div style={{textAlign:"center",marginBottom:36}}>
+          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
+          <h1 style={{fontSize:26,fontWeight:900,margin:0,color:C.text}}>歩行動作<br/><span style={{color:C.accent}}>AI解析アプリ</span></h1>
+          <p style={{color:C.muted,marginTop:12,fontSize:13}}>{mode==="login"?"アカウントにログイン":"新規アカウント登録"}</p>
+        </div>
+
+        {error && (
+          <div style={{background:error.includes("確認メール")?C.accent+"18":C.red+"18",border:`1px solid ${error.includes("確認メール")?C.accent:C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:error.includes("確認メール")?C.accent:C.red}}>
+            {error}
+          </div>
+        )}
+
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px 20px"}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>メールアドレス</div>
+            <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="example@email.com"
+              style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>パスワード</div>
+            <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="6文字以上"
+              onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
+              style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"14px",background:loading?C.border:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:loading?C.muted:C.bg,fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"'Noto Sans JP',sans-serif",boxShadow:loading?"none":`0 4px 20px ${C.accent}33`}}>
+            {loading?"処理中...":mode==="login"?"ログイン":"アカウント登録"}
+          </button>
+        </div>
+
+        <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError(null);}} style={{width:"100%",marginTop:12,padding:"12px",background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>
+          {mode==="login"?"アカウントを作成する →":"ログインはこちら →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function WalkingVideoAnalyzer() {
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [phase, setPhase] = useState("consent");
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
   const [users, setUsers] = useState({});
