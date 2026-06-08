@@ -346,8 +346,8 @@ export default function WalkingVideoAnalyzer() {
     setUsers(loadUsers());
   }, []);
 
-  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px"};
-  const maxW = {width:"100%",maxWidth:520};
+  const wrap = {minHeight:"100vh",minHeight:"-webkit-fill-available",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px max(48px, env(safe-area-inset-bottom))",paddingLeft:"max(16px, env(safe-area-inset-left))",paddingRight:"max(16px, env(safe-area-inset-right))"};
+  const maxW = {width:"100%",maxWidth:480,margin:"0 auto"};
 
   const handleFile = useCallback((file) => {
     if (!file) return;
