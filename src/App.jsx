@@ -74,7 +74,6 @@ const buildPrompt = (frameCount, history) => {
 - 全身が映っていないフレームは除外し、有効なフレームのみで判断してください。
 【補助具・環境の検出】
 - 杖（一本杖・四点杖・ロフストランドクラッチなど）、歩行器、シルバーカーなどを検出してください。
-- 「ベビーカー」という表現は使わず、必ず「歩行器」と表現してください。
 - 壁や廊下の手すりも検出してください。
 - 補助具・手すりの使い方が適切か（荷重・高さ・グリップ位置）も評価してください。
 - 体操提案は補助具の有無・種類に合わせた内容にしてください。
@@ -89,7 +88,7 @@ function ScoreArc({ score }) {
   const toRad = d => (d*Math.PI)/180;
   const arc = (a1,a2,rad) => { const x1=cx+rad*Math.cos(toRad(a1)), y1=cy+rad*Math.sin(toRad(a1)); const x2=cx+rad*Math.cos(toRad(a2)), y2=cy+rad*Math.sin(toRad(a2)); return `M ${x1} ${y1} A ${rad} ${rad} 0 ${a2-a1>180?1:0} 1 ${x2} ${y2}`; };
   const col = score>=75?C.accent:score>=50?C.amber:C.red;
-  return (<div style={{position:"relative",width:size,height:size}}><svg width={size} height={size}><path d={arc(-210,30,r)} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={10} strokeLinecap="round"/><path d={arc(-210,angle,r)} fill="none" stroke={col} strokeWidth={10} strokeLinecap="round" style={{transition:"all 1.4s cubic-bezier(.4,0,.2,1)"}}/><circle cx={cx+r*Math.cos(toRad(angle))} cy={cy+r*Math.sin(toRad(angle))} r={6} fill={col} style={{transition:"all 1.4s",filter:`drop-shadow(0 0 6px ${col})`}}/></svg><div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:8}}><span style={{fontSize:42,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{score}</span><span style={{fontSize:10,color:C.muted,letterSpacing:3}}>GAIT SCORE</span></div></div>);
+  return (<div style={{position:"relative",width:size,height:size}}><svg width={size} height={size}><path d={arc(-210,30,r)} fill="none" stroke={C.border} strokeWidth={10} strokeLinecap="round"/><path d={arc(-210,angle,r)} fill="none" stroke={col} strokeWidth={10} strokeLinecap="round" style={{transition:"all 1.4s cubic-bezier(.4,0,.2,1)"}}/><circle cx={cx+r*Math.cos(toRad(angle))} cy={cy+r*Math.sin(toRad(angle))} r={6} fill={col} style={{transition:"all 1.4s",filter:`drop-shadow(0 0 6px ${col})`}}/></svg><div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:8}}><span style={{fontSize:42,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{score}</span><span style={{fontSize:10,color:C.muted,letterSpacing:3}}>GAIT SCORE</span></div></div>);
 }
 
 function ScoreHistoryChart({ history }) {
@@ -113,6 +112,75 @@ function ComparePanel({ current, prev }) {
 function GaitMetricBar({ label, value, color }) {
   const pct = value==="良好"||value==="正常"||value==="自然"?85:value?.includes("やや")?60:value?.includes("不規則")||value?.includes("小さい")||value?.includes("少ない")?40:65;
   return (<div style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span style={{color:C.mutedLight}}>{label}</span><span style={{color:C.text,fontWeight:600}}>{value}</span></div><div style={{height:4,background:C.border,borderRadius:2}}><div style={{width:`${pct}%`,height:"100%",background:color,borderRadius:2,transition:"width 1s ease 0.3s"}}/></div></div>);
+}
+
+function GaitRadarChart({ gait }) {
+  if (!gait) return null;
+  const size = 260, cx = 130, cy = 130, maxR = 90;
+  const metrics = [
+    { label:"歩行リズム", value:gait.cadence, color:C.accent },
+    { label:"歩幅", value:gait.stride, color:C.blue },
+    { label:"体幹・姿勢", value:gait.posture, color:C.amber },
+    { label:"腕振り", value:gait.armSwing, color:"#c084fc" },
+    { label:"足のクリアランス", value:gait.footClearance, color:C.accent },
+  ];
+  const getScore = (v) => v==="良好"||v==="正常"||v==="自然"?85:v?.includes("やや")?60:v?.includes("不規則")||v?.includes("小さい")||v?.includes("少ない")?40:65;
+  const n = metrics.length;
+  const toXY = (i, r) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  };
+  const labelOffset = (i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    return { x: cx + (maxR + 22) * Math.cos(a), y: cy + (maxR + 22) * Math.sin(a) };
+  };
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+  const dataPoints = metrics.map((m, i) => toXY(i, maxR * getScore(m.value) / 100));
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <svg width={size} height={size} style={{overflow:"visible"}}>
+        <defs>
+          <radialGradient id="radarFill" cx="50%" cy="50%">
+            <stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/>
+            <stop offset="100%" stopColor={C.accent} stopOpacity="0.05"/>
+          </radialGradient>
+        </defs>
+        {gridLevels.map((level, li) => {
+          const pts = Array.from({length:n}, (_,i) => toXY(i, maxR * level));
+          const path = pts.map((p,i) => `${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ") + " Z";
+          return <path key={li} d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>;
+        })}
+        {Array.from({length:n}, (_,i) => {
+          const outer = toXY(i, maxR);
+          return <line key={i} x1={cx} y1={cy} x2={outer.x} y2={outer.y} stroke="rgba(255,255,255,0.08)" strokeWidth="1"/>;
+        })}
+        <path d={dataPath} fill="url(#radarFill)" stroke={C.accent} strokeWidth="2" strokeLinejoin="round" style={{filter:`drop-shadow(0 0 8px ${C.accent}88)`}}/>
+        {dataPoints.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={4} fill={metrics[i].color} stroke={C.bgSolid} strokeWidth={2} style={{filter:`drop-shadow(0 0 4px ${metrics[i].color})`}}/>
+        ))}
+        {metrics.map((m, i) => {
+          const lp = labelOffset(i);
+          const score = getScore(m.value);
+          return (
+            <g key={i}>
+              <text x={lp.x} y={lp.y - 6} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.6)" fontFamily={C.font}>{m.label}</text>
+              <text x={lp.x} y={lp.y + 7} textAnchor="middle" fontSize="9" fill={m.color} fontFamily="monospace" fontWeight="700">{score}%</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{display:"flex",flexDirection:"column",gap:6,width:"100%",marginTop:8}}>
+        {metrics.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+            <span style={{color:C.mutedLight}}>{m.label}</span>
+            <span style={{color:m.color,fontWeight:700}}>{m.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function SeverityDot({ s }) {
@@ -416,11 +484,7 @@ export default function WalkingVideoAnalyzer() {
         {h.gait&&(
           <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px",marginBottom:12}}>
             <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div>
-            <GaitMetricBar label="歩行リズム" value={h.gait.cadence} color={C.accent}/>
-            <GaitMetricBar label="歩幅" value={h.gait.stride} color={C.blue}/>
-            <GaitMetricBar label="体幹・姿勢" value={h.gait.posture} color={C.amber}/>
-            <GaitMetricBar label="腕振り" value={h.gait.armSwing} color="#c084fc"/>
-            <GaitMetricBar label="足のクリアランス" value={h.gait.footClearance} color={C.accent}/>
+            <GaitRadarChart gait={h.gait}/>
           </div>
         )}
         {h.issues&&h.issues.length>0&&(
@@ -580,7 +644,7 @@ export default function WalkingVideoAnalyzer() {
         {frames.length>0&&(<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}}>解析フレーム</div><FrameStrip frames={frames} current={currentFrame} onSelect={setCurrentFrame}/><img src={`data:image/jpeg;base64,${frames[currentFrame]?.b64}`} alt="selected" style={{width:"100%",borderRadius:8,marginTop:4,border:`1px solid ${C.border}`}}/></div>)}
         <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>{tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"8px 2px",background:activeTab===t.id?C.accent:"transparent",border:"none",borderRadius:8,color:activeTab===t.id?C.bgSolid:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,lineHeight:1.4}}>{t.icon}<br/>{t.label}</button>))}</div>
         {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
-        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {a}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{result.aids.usage}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{result.aids.recommendation}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitMetricBar label="歩行リズム" value={result.gait.cadence} color={C.accent}/><GaitMetricBar label="歩幅" value={result.gait.stride} color={C.blue}/><GaitMetricBar label="体幹・姿勢" value={result.gait.posture} color={C.amber}/><GaitMetricBar label="腕振り" value={result.gait.armSwing} color="#c084fc"/><GaitMetricBar label="足のクリアランス" value={result.gait.footClearance} color={C.accent}/></div></div>)}
+        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {a}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{result.aids.usage}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{result.aids.recommendation}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
         {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
         {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
