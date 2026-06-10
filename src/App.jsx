@@ -141,6 +141,8 @@ export default function WalkingVideoAnalyzer() {
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // {id, name, type: "patient"|"history"}
+  const [historyPatient, setHistoryPatient] = useState(null); // 履歴閲覧中の患者
+  const [historyDetail, setHistoryDetail] = useState(null); // 詳細表示中の履歴
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -249,7 +251,7 @@ export default function WalkingVideoAnalyzer() {
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
           headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:4000,messages:[{role:"user",content:imageContent}]}),
+          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
@@ -382,6 +384,98 @@ export default function WalkingVideoAnalyzer() {
     );
   }
 
+  // ── HISTORY LIST ──────────────────────────────────────────────────────────
+  if (phase==="historyList" && historyPatient) {
+    const hist = historyPatient.history || [];
+    return (
+      <div style={wrap}><div style={maxW}>
+        <div style={{paddingTop:40,marginBottom:24}}>
+          <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 利用者選択に戻る</button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
+              <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
+            </div>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>新しく測定 →</button>
+          </div>
+        </div>
+        {hist.length===0?(
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {hist.map((h,i)=>{
+              const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
+              return (
+                <div key={i} onClick={()=>setHistoryDetail(h)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:52,height:52,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:20,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{h.score}</span>
+                      <span style={{fontSize:8,color:C.muted,letterSpacing:1}}>SCORE</span>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:2}}>{h.summary}</div>
+                      <div style={{fontSize:11,color:C.muted}}>{formatDate(h.date)}{i===0&&<span style={{marginLeft:6,background:C.accent+"22",color:C.accent,borderRadius:100,padding:"1px 8px",fontSize:10,fontWeight:700}}>最新</span>}</div>
+                    </div>
+                    <div style={{color:C.muted,fontSize:16}}>›</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div></div>
+    );
+  }
+
+  // ── HISTORY DETAIL ────────────────────────────────────────────────────────
+  if (phase==="historyList" && historyDetail) {
+    const h = historyDetail;
+    const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
+    return (
+      <div style={wrap}><div style={maxW}>
+        <div style={{paddingTop:40,marginBottom:24}}>
+          <button onClick={()=>setHistoryDetail(null)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 履歴一覧に戻る</button>
+          <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{formatDate(h.date)}</div>
+          <h2 style={{fontSize:20,fontWeight:900,margin:0,color:C.text}}>{h.summary}</h2>
+        </div>
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"24px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
+          <ScoreArc score={h.score}/>
+          <div style={{fontWeight:900,fontSize:15,marginTop:4,textAlign:"center",color:C.text}}>{h.summary}</div>
+        </div>
+        {h.gait&&(
+          <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px",marginBottom:12}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div>
+            <GaitMetricBar label="歩行リズム" value={h.gait.cadence} color={C.accent}/>
+            <GaitMetricBar label="歩幅" value={h.gait.stride} color={C.blue}/>
+            <GaitMetricBar label="体幹・姿勢" value={h.gait.posture} color={C.amber}/>
+            <GaitMetricBar label="腕振り" value={h.gait.armSwing} color="#c084fc"/>
+            <GaitMetricBar label="足のクリアランス" value={h.gait.footClearance} color={C.accent}/>
+          </div>
+        )}
+        {h.issues&&h.issues.length>0&&(
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>課題</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {h.issues.map((issue,i)=>(
+                <div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14,color:C.text}}>{issue.title}</span></div>
+                  <p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {h.exercises&&h.exercises.length>0&&(
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>体操メニュー</div>
+            {h.exercises.map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}
+          </div>
+        )}
+        <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{width:"100%",padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>この利用者で新しく測定 →</button>
+      </div></div>
+    );
+  }
+
   if (phase==="userSelect") {
     const selectExisting = async (p) => { setPatientId(p.id); setPatientName(p.name); const hist = await getPatientHistory(p.id); setPatientHistory(hist); setPhase("upload"); };
     const addNew = async () => {
@@ -408,7 +502,7 @@ export default function WalkingVideoAnalyzer() {
                 const hist=p.history||[], last=hist[0];
                 return (
                   <div key={p.id} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>selectExisting(p)}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");}}>
                       <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                       <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
                         <div style={{fontWeight:700,fontSize:15,color:C.text}}>{p.name}</div>
@@ -416,9 +510,9 @@ export default function WalkingVideoAnalyzer() {
                       </div>
                       <div style={{color:C.muted,fontSize:16,cursor:"pointer"}}>›</div>
                     </div>
-                    <div style={{display:"flex",gap:12,marginTop:6,justifyContent:"flex-end"}}>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{background:"none",border:"none",color:C.amber,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",padding:0}}>履歴削除</button>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{background:"none",border:"none",color:C.red,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",padding:0}}>利用者削除</button>
+                    <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>📋 履歴を削除</button>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 利用者を削除</button>
                     </div>
                   </div>
                 );
