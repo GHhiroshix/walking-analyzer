@@ -77,6 +77,7 @@ const buildPrompt = (frameCount, history) => {
 - 壁や廊下の手すりも検出してください。
 - 補助具・手すりの使い方が適切か（荷重・高さ・グリップ位置）も評価してください。
 - 体操提案は補助具の有無・種類に合わせた内容にしてください。
+- 歩行補助用の押し車・カートは「ベビーカー」と表現せず、必ず「歩行器」または「シルバーカー」と表現してください。
 ${historyBlock}
 以下のJSON形式のみで回答してください（前置き・後置き・コードブロック記号なし）：
 {"score":数値,"summary":"総合評価（25文字以内）","progress":"前回比コメント（初回はnull）","aids":{"detected":[],"usage":null,"recommendation":null},"gait":{"cadence":"","stride":"","posture":"","armSwing":"","footClearance":""},"issues":[{"title":"","detail":"","severity":"high|medium|low"}],"exercises":[{"name":"","target":"","duration":"","steps":[],"effect":"","isNew":true}],"lifestyle":[]}`;
