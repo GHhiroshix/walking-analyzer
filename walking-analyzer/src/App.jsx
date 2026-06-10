@@ -135,9 +135,10 @@ function FrameStrip({ frames, current, onSelect }) {
       if (s) { setPhase("consent"); loadPatients(s.user.id); } else { setPhase("login"); }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); }
-    });
+  setSession(s);
+  if (s) { setPhase("consent"); loadPatients(s.user.id); }
+  else { setPhase("login"); }
+});
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap";
