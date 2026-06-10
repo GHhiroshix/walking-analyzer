@@ -2,11 +2,24 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
 const C = {
-  bg: "#07080a", surface: "#0f1318", panel: "#141a22", border: "#1c2630",
+  bg: "linear-gradient(135deg, #0a0f1e 0%, #0d1a2e 40%, #0a1628 70%, #060d18 100%)",
+  bgSolid: "#0a0f1e",
+  surface: "rgba(255,255,255,0.06)",
+  panel: "rgba(255,255,255,0.04)",
+  border: "rgba(255,255,255,0.12)",
   accent: "#39e0b0", accentDim: "#1faa80", blue: "#4da6ff",
   amber: "#f5a623", red: "#ff4d6d", text: "#ddeeff",
-  muted: "#4a6070", mutedLight: "#7a9ab0",
+  muted: "rgba(255,255,255,0.35)", mutedLight: "rgba(255,255,255,0.5)",
+  font: "'Kosugi Maru', sans-serif",
 };
+
+const GlassOrbs = () => (
+  <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,overflow:"hidden"}}>
+    <div style={{position:"absolute",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle, rgba(57,224,176,0.2) 0%, transparent 70%)",top:-80,left:-80,filter:"blur(40px)"}}/>
+    <div style={{position:"absolute",width:250,height:250,borderRadius:"50%",background:"radial-gradient(circle, rgba(77,166,255,0.15) 0%, transparent 70%)",bottom:100,right:-60,filter:"blur(35px)"}}/>
+    <div style={{position:"absolute",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, rgba(192,132,252,0.12) 0%, transparent 70%)",top:"40%",left:10,filter:"blur(30px)"}}/>
+  </div>
+);
 
 async function getPatients(facilityId) {
   const { data, error } = await supabase.from("patients").select("id, name, created_at").eq("facility_id", facilityId).order("created_at", { ascending: false });
@@ -87,7 +100,7 @@ function ScoreHistoryChart({ history }) {
   const pts = items.map((h,i)=>({ x: pad+(i/(items.length-1))*(cW-pad*2), y: cH-pad-((h.score-minS)/(maxS-minS))*(cH-pad*2), score: h.score }));
   const pathD = pts.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
   const areaD = `${pathD} L ${pts[pts.length-1].x} ${cH-pad} L ${pts[0].x} ${cH-pad} Z`;
-  return (<div style={{marginTop:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>スコア推移</div><svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/><stop offset="100%" stopColor={C.accent} stopOpacity="0"/></linearGradient></defs><path d={areaD} fill="url(#g)"/><path d={pathD} fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>{pts.map((p,i)=>(<g key={i}><circle cx={p.x} cy={p.y} r={4} fill={C.accent} stroke={C.bg} strokeWidth={2}/><text x={p.x} y={p.y-8} textAnchor="middle" fontSize="10" fill={C.accent} fontFamily="monospace">{p.score}</text>{i===0&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>最古</text>}{i===pts.length-1&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>今回</text>}</g>))}</svg></div>);
+  return (<div style={{marginTop:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>スコア推移</div><svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/><stop offset="100%" stopColor={C.accent} stopOpacity="0"/></linearGradient></defs><path d={areaD} fill="url(#g)"/><path d={pathD} fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>{pts.map((p,i)=>(<g key={i}><circle cx={p.x} cy={p.y} r={4} fill={C.accent} stroke={C.bgSolid} strokeWidth={2}/><text x={p.x} y={p.y-8} textAnchor="middle" fontSize="10" fill={C.accent} fontFamily="monospace">{p.score}</text>{i===0&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>最古</text>}{i===pts.length-1&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>今回</text>}</g>))}</svg></div>);
 }
 
 function ComparePanel({ current, prev }) {
@@ -159,7 +172,7 @@ export default function WalkingVideoAnalyzer() {
     });
     const l = document.createElement("link");
     l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap";
+    l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
     document.head.appendChild(l);
     return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
@@ -187,8 +200,8 @@ export default function WalkingVideoAnalyzer() {
     if (session) await loadPatients(session.user.id);
   };
 
-  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px"};
-  const maxW = {width:"100%",maxWidth:520};
+  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:C.font,color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px",position:"relative"};
+  const maxW = {width:"100%",maxWidth:520,position:"relative",zIndex:1};
 
   const handleFile = useCallback((file) => {
     if (!file) return;
@@ -297,8 +310,8 @@ export default function WalkingVideoAnalyzer() {
             <br/>この操作は取り消せません。
           </div>
           <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>キャンセル</button>
-            <button onClick={handleDeleteConfirm} style={{flex:1,padding:"11px",background:C.red,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>削除する</button>
+            <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
+            <button onClick={handleDeleteConfirm} style={{flex:1,padding:"11px",background:C.red,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>削除する</button>
           </div>
         </div>
       </div>
@@ -322,22 +335,22 @@ export default function WalkingVideoAnalyzer() {
       setAuthLoading(false);
     };
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <div style={{paddingTop:60,marginBottom:32,textAlign:"center"}}>
-          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
+          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:"rgba(57,224,176,0.12)",border:`1px solid rgba(57,224,176,0.25)`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
           <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>{authMode==="login"?"施設ログイン":"施設アカウント登録"}</h1>
           <p style={{color:C.muted,marginTop:10,fontSize:13}}>{authMode==="login"?"メールアドレスとパスワードでログイン":"施設のメールとパスワードを設定"}</p>
         </div>
-        {authError&&<div style={{background:authError.includes("確認メール")?C.accent+"18":C.red+"18",border:`1px solid ${authError.includes("確認メール")?C.accent+"33":C.red+"33"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:authError.includes("確認メール")?C.accent:C.red}}>{authError}</div>}
+        {authError&&<div style={{background:authError.includes("確認メール")?"rgba(57,224,176,0.12)":"rgba(255,77,109,0.12)",border:`1px solid ${authError.includes("確認メール")?"rgba(57,224,176,0.3)":"rgba(255,77,109,0.3)"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:authError.includes("確認メール")?C.accent:C.red}}>{authError}</div>}
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-          <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
-          <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} placeholder="パスワード（8文字以上）" type="password" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
+          <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:"rgba(255,255,255,0.07)",border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
+          <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} placeholder="パスワード（8文字以上）" type="password" style={{background:"rgba(255,255,255,0.07)",border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
         </div>
-        <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPassword.trim()} style={{width:"100%",padding:"14px",background:authEmail.trim()&&authPassword.trim()?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:authEmail.trim()&&authPassword.trim()?C.bg:C.muted,fontSize:15,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:"'Noto Sans JP',sans-serif",marginBottom:14}}>
+        <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPassword.trim()} style={{width:"100%",padding:"14px",background:authEmail.trim()&&authPassword.trim()?`linear-gradient(135deg,${C.accent},${C.accentDim})`:"rgba(255,255,255,0.1)",border:"none",borderRadius:12,color:authEmail.trim()&&authPassword.trim()?C.bgSolid:C.muted,fontSize:15,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,marginBottom:14,boxShadow:authEmail.trim()&&authPassword.trim()?`0 4px 24px rgba(57,224,176,0.3)`:"none"}}>
           {authLoading?"処理中...":authMode==="login"?"ログイン →":"アカウントを作成 →"}
         </button>
         <div style={{textAlign:"center"}}>
-          <button onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthError(null);}} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:13,fontFamily:"'Noto Sans JP',sans-serif"}}>
+          <button onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthError(null);}} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:13,fontFamily:C.font}}>
             {authMode==="login"?"アカウントをお持ちでない方はこちら →":"ログイン画面に戻る"}
           </button>
         </div>
@@ -354,9 +367,9 @@ export default function WalkingVideoAnalyzer() {
       {key:"c4",label:"本アプリの解析結果は参考情報であり、医療診断の代替ではないことを理解しています",note:"強い不安がある場合は医療機関・理学療法士にご相談ください",imp:false},
     ];
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
-          <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:"'Noto Sans JP',sans-serif"}}>ログアウト</button>
+          <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
         </div>
         <div style={{paddingTop:24,marginBottom:28,textAlign:"center"}}>
           <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
@@ -367,7 +380,7 @@ export default function WalkingVideoAnalyzer() {
           {ITEMS.map(({key,label,note,imp})=>{ const checked=checks[key]; return (
             <div key={key} onClick={()=>setChecks(p=>({...p,[key]:!p[key]}))} style={{display:"flex",gap:12,alignItems:"flex-start",background:checked?C.accent+"0a":C.surface,border:`1.5px solid ${checked?C.accent+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
               <div style={{width:22,height:22,borderRadius:6,flexShrink:0,marginTop:1,border:`2px solid ${checked?C.accent:imp?C.amber+"88":C.muted}`,background:checked?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
-                {checked&&<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke={C.bg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {checked&&<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke={C.bgSolid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </div>
               <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,lineHeight:1.5,color:C.text}}>{imp&&<span style={{color:C.amber,fontSize:10,marginRight:4}}>★</span>}{label}</div><div style={{fontSize:11,color:C.muted,marginTop:4,lineHeight:1.6}}>{note}</div></div>
             </div>
@@ -376,7 +389,7 @@ export default function WalkingVideoAnalyzer() {
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:12,color:C.muted,lineHeight:1.7}}>
           📄 Anthropicのプライバシーポリシー：<a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{color:C.accent,marginLeft:4}}>anthropic.com/privacy</a>
         </div>
-        <button onClick={()=>allChecked&&setPhase("userSelect")} disabled={!allChecked} style={{width:"100%",padding:"15px",background:allChecked?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:allChecked?C.bg:C.muted,fontSize:15,fontWeight:700,cursor:allChecked?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Noto Sans JP',sans-serif",boxShadow:allChecked?`0 4px 20px ${C.accent}33`:"none"}}>
+        <button onClick={()=>allChecked&&setPhase("userSelect")} disabled={!allChecked} style={{width:"100%",padding:"15px",background:allChecked?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:allChecked?C.bgSolid:C.muted,fontSize:15,fontWeight:700,cursor:allChecked?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:C.font,boxShadow:allChecked?`0 4px 20px ${C.accent}33`:"none"}}>
           {allChecked?"同意して次へ →":`あと ${Object.values(checks).filter(v=>!v).length} 項目の確認が必要です`}
         </button>
         <div style={{textAlign:"center",marginTop:10,fontSize:11,color:C.muted}}>★ は特に重要な項目です</div>
@@ -389,9 +402,9 @@ export default function WalkingVideoAnalyzer() {
     const h = historyDetail;
     const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
-          <button onClick={()=>setHistoryDetail(null)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 履歴一覧に戻る</button>
+          <button onClick={()=>setHistoryDetail(null)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 履歴一覧に戻る</button>
           <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{formatDate(h.date)}</div>
           <h2 style={{fontSize:20,fontWeight:900,margin:0,color:C.text}}>{h.summary}</h2>
         </div>
@@ -428,7 +441,7 @@ export default function WalkingVideoAnalyzer() {
             {h.exercises.map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}
           </div>
         )}
-        <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{width:"100%",padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>この利用者で新しく測定 →</button>
+        <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{width:"100%",padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>この利用者で新しく測定 →</button>
       </div></div>
     );
   }
@@ -437,15 +450,15 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="historyList" && historyPatient) {
     const hist = historyPatient.history || [];
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
-          <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 利用者選択に戻る</button>
+          <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>新しく測定 →</button>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
           </div>
         </div>
         {hist.length===0?(
@@ -486,10 +499,10 @@ export default function WalkingVideoAnalyzer() {
       await loadPatients(session.user.id); setPhase("upload");
     };
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <DeleteDialog/>
         <div style={{paddingTop:40,marginBottom:28}}>
-          <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 同意画面に戻る</button>
+          <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
           <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
           <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
         </div>
@@ -511,8 +524,8 @@ export default function WalkingVideoAnalyzer() {
                       <div style={{color:C.muted,fontSize:16,cursor:"pointer"}}>›</div>
                     </div>
                     <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>📋 履歴を削除</button>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 利用者を削除</button>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:C.font}}>📋 履歴を削除</button>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}>🗑️ 利用者を削除</button>
                     </div>
                   </div>
                 );
@@ -520,16 +533,16 @@ export default function WalkingVideoAnalyzer() {
             </div>
           </div>
         )}
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div><div style={{display:"flex",gap:8}}><input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)addNew()}} placeholder="お名前またはID（例：田中さん）" style={{flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/><button onClick={addNew} disabled={!nameInput.trim()} style={{padding:"10px 16px",background:nameInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:nameInput.trim()?C.bg:C.muted,fontSize:13,fontWeight:700,cursor:nameInput.trim()?"pointer":"not-allowed",fontFamily:"'Noto Sans JP',sans-serif",whiteSpace:"nowrap"}}>登録して開始</button></div></div>
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div><div style={{display:"flex",gap:8}}><input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)addNew()}} placeholder="お名前またはID（例：田中さん）" style={{flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/><button onClick={addNew} disabled={!nameInput.trim()} style={{padding:"10px 16px",background:nameInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:nameInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:nameInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}>登録して開始</button></div></div>
       </div></div>
     );
   }
 
   if (phase==="upload") {
     return (
-      <div style={wrap}><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:20}}>
-          <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:16,fontFamily:"'Noto Sans JP',sans-serif"}}>← 利用者選択に戻る</button>
+          <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:16,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:"50%",background:C.accent+"1a",border:`1px solid ${C.accent}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div><div><div style={{fontWeight:700,fontSize:15}}>{patientName}</div><div style={{fontSize:11,color:C.muted}}>{patientHistory.length>0?`${patientHistory.length+1}回目の測定`:"初回測定"}</div></div></div>
         </div>
         {error&&<div style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red}}>⚠️ {error}</div>}
@@ -537,7 +550,7 @@ export default function WalkingVideoAnalyzer() {
         {!videoUrl?(<div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={handleDrop} onClick={()=>fileInputRef.current?.click()} style={{border:`2px dashed ${dragOver?C.accent:C.border}`,borderRadius:16,padding:"44px 24px",textAlign:"center",cursor:"pointer",background:dragOver?C.accent+"06":C.surface,transition:"all 0.2s"}}><div style={{fontSize:48,marginBottom:12}}>🎥</div><div style={{fontWeight:700,fontSize:15,marginBottom:6}}>動画をドロップ、またはタップして選択</div><div style={{color:C.muted,fontSize:12}}>MP4 / MOV / WebM ／ 最大200MB</div></div>):(
           <div><video ref={videoRef} src={videoUrl} controls playsInline style={{width:"100%",borderRadius:12,background:"#000",maxHeight:320,border:`1px solid ${C.border}`}}/>
           <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginTop:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10,fontWeight:700}}>解析前チェック</div>{[["スマホを固定して撮影した（横に動かして追いかけていない）",true],["真横から全身が映っている",true],["明るさは十分で影が少ない",false]].map(([label,imp])=>(<div key={label} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:7}}><span style={{width:16,height:16,borderRadius:4,marginTop:1,flexShrink:0,border:`1.5px solid ${imp?C.amber:C.border}`}}/><span style={{fontSize:12,color:imp?C.text:C.mutedLight,fontWeight:imp?600:400,lineHeight:1.5}}>{imp&&<span style={{color:C.amber,marginRight:3}}>★</span>}{label}</span></div>))}</div>
-          <div style={{display:"flex",gap:10,marginTop:12}}><button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>動画を変更</button><button onClick={startAnalysis} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",boxShadow:`0 4px 20px ${C.accent}33`}}>解析を開始 →</button></div></div>
+          <div style={{display:"flex",gap:10,marginTop:12}}><button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button><button onClick={startAnalysis} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>解析を開始 →</button></div></div>
         )}
         <div style={{marginTop:24}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,fontWeight:700,marginBottom:10}}>📋 撮影ガイド</div><div style={{background:C.amber+"12",border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"12px 14px",marginBottom:10}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:18,flexShrink:0}}>⚠️</span><div style={{fontSize:12,color:C.mutedLight,lineHeight:1.7}}>スマホを横に動かしながら撮ると解析精度が下がります。<br/><span style={{color:C.text,fontWeight:600}}>スマホを固定して、人が画面を横切るのを待つ</span>のがコツです。</div></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}><div style={{background:C.red+"0e",border:`1px solid ${C.red}33`,borderRadius:10,padding:"12px"}}><div style={{fontSize:11,fontWeight:700,color:C.red,marginBottom:6}}>✗ NG</div>{["スマホを横に動かして人を追う","斜め前・後ろから撮影","近すぎて全身が入らない"].map(t=><div key={t} style={{fontSize:11,color:C.mutedLight,lineHeight:1.7}}>• {t}</div>)}</div><div style={{background:C.accent+"0e",border:`1px solid ${C.accent}33`,borderRadius:10,padding:"12px"}}><div style={{fontSize:11,fontWeight:700,color:C.accent,marginBottom:6}}>✓ OK</div>{["壁や棚にスマホを立てかける","真横から全身を収める","5〜8m離れて広めに構える"].map(t=><div key={t} style={{fontSize:11,color:C.mutedLight,lineHeight:1.7}}>• {t}</div>)}</div></div></div>
       </div></div>
@@ -560,24 +573,25 @@ export default function WalkingVideoAnalyzer() {
     const prevRecord=patientHistory.length>1?patientHistory[1]:null;
     const tabs=[...(patientHistory.length>1?[{id:"compare",label:"比較",icon:"📈"}]:[]),{id:"gait",label:"歩行指標",icon:"📊"},{id:"issues",label:"課題",icon:"⚠️"},{id:"exercises",label:"体操",icon:"🏃"},{id:"lifestyle",label:"生活",icon:"💡"}];
     return (
-      <div style={wrap}><div style={maxW}><div style={{paddingTop:32}}>
+      <div style={wrap}><GlassOrbs/><div style={maxW}><div style={{paddingTop:32}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}><div style={{width:28,height:28,borderRadius:"50%",background:C.accent+"1a",border:`1px solid ${C.accent}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👤</div><span style={{fontWeight:700,color:C.text}}>{patientName}</span><span style={{fontSize:11,color:C.muted}}>— {patientHistory.length}回目 / {formatDate(patientHistory[0]?.date)}</span></div>
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"28px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}><ScoreArc score={result.score}/><div style={{fontWeight:900,fontSize:17,marginTop:4,textAlign:"center"}}>{result.summary}</div>{patientHistory.length>1&&<ScoreHistoryChart history={patientHistory}/>}</div>
         {frames.length>0&&(<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}}>解析フレーム</div><FrameStrip frames={frames} current={currentFrame} onSelect={setCurrentFrame}/><img src={`data:image/jpeg;base64,${frames[currentFrame]?.b64}`} alt="selected" style={{width:"100%",borderRadius:8,marginTop:4,border:`1px solid ${C.border}`}}/></div>)}
-        <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>{tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"8px 2px",background:activeTab===t.id?C.accent:"transparent",border:"none",borderRadius:8,color:activeTab===t.id?C.bg:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:"'Noto Sans JP',sans-serif",lineHeight:1.4}}>{t.icon}<br/>{t.label}</button>))}</div>
+        <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>{tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"8px 2px",background:activeTab===t.id?C.accent:"transparent",border:"none",borderRadius:8,color:activeTab===t.id?C.bgSolid:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,lineHeight:1.4}}>{t.icon}<br/>{t.label}</button>))}</div>
         {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
         {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {a}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{result.aids.usage}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{result.aids.recommendation}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitMetricBar label="歩行リズム" value={result.gait.cadence} color={C.accent}/><GaitMetricBar label="歩幅" value={result.gait.stride} color={C.blue}/><GaitMetricBar label="体幹・姿勢" value={result.gait.posture} color={C.amber}/><GaitMetricBar label="腕振り" value={result.gait.armSwing} color="#c084fc"/><GaitMetricBar label="足のクリアランス" value={result.gait.footClearance} color={C.accent}/></div></div>)}
         {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
         {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
-        <button onClick={restart} style={{width:"100%",marginTop:20,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
+        <button onClick={restart} style={{width:"100%",marginTop:20,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:C.font}}>別の動画で再解析</button>
       </div></div></div>
     );
   }
 
   if (phase==="loading") return (
-    <div style={{minHeight:"100vh",background:"#07080a",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{color:"#39e0b0",fontSize:16,fontFamily:"'Noto Sans JP',sans-serif"}}>読み込み中...</div>
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+      <GlassOrbs/>
+      <div style={{color:C.accent,fontSize:16,fontFamily:C.font,position:"relative",zIndex:1}}>読み込み中...</div>
     </div>
   );
   return null;
