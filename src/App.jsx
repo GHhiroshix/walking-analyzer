@@ -416,9 +416,9 @@ export default function WalkingVideoAnalyzer() {
                       </div>
                       <div style={{color:C.muted,fontSize:16,cursor:"pointer"}}>›</div>
                     </div>
-                    <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>📋 履歴を削除</button>
-                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 利用者を削除</button>
+                    <div style={{display:"flex",gap:12,marginTop:6,justifyContent:"flex-end"}}>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{background:"none",border:"none",color:C.amber,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",padding:0}}>履歴削除</button>
+                      <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{background:"none",border:"none",color:C.red,fontSize:11,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif",padding:0}}>利用者削除</button>
                     </div>
                   </div>
                 );
