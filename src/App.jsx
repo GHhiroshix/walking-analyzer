@@ -573,7 +573,7 @@ const timeout = setTimeout(() => setPhase("login"), 3000);
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",gap:8}}>
-            <input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addNew()} placeholder="お名前またはID（例：田中さん）" style={{flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
+            <input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)addNew()}} placeholder="お名前またはID（例：田中さん）" style={{flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
             <button onClick={addNew} disabled={!nameInput.trim()} style={{padding:"10px 16px",background:nameInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:nameInput.trim()?C.bg:C.muted,fontSize:13,fontWeight:700,cursor:nameInput.trim()?"pointer":"not-allowed",fontFamily:"'Noto Sans JP',sans-serif",whiteSpace:"nowrap"}}>登録して開始</button>
           </div>
         </div>
