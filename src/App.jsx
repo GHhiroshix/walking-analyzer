@@ -297,7 +297,7 @@ export default function WalkingVideoAnalyzer() {
       try {
         vid.src = videoUrl;
         await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("メタデータ読み込みタイムアウト")), 15000);
+          const timer = setTimeout(() => rej(new Error("メタデータ読み込みタイムアウト")), 16000);
           vid.onloadedmetadata = () => { clearTimeout(timer); res(); };
           vid.onerror = () => { clearTimeout(timer); rej(new Error(`動画の読み込みエラー: ${vid.error?.message||"不明"}`)); };
           vid.load();
@@ -336,7 +336,7 @@ export default function WalkingVideoAnalyzer() {
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
           headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
+          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:16000,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
