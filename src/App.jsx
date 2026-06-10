@@ -384,49 +384,6 @@ export default function WalkingVideoAnalyzer() {
     );
   }
 
-  // ── HISTORY LIST ──────────────────────────────────────────────────────────
-  if (phase==="historyList" && historyPatient) {
-    const hist = historyPatient.history || [];
-    return (
-      <div style={wrap}><div style={maxW}>
-        <div style={{paddingTop:40,marginBottom:24}}>
-          <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 利用者選択に戻る</button>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div>
-              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
-              <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
-            </div>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>新しく測定 →</button>
-          </div>
-        </div>
-        {hist.length===0?(
-          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
-        ):(
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {hist.map((h,i)=>{
-              const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
-              return (
-                <div key={i} onClick={()=>setHistoryDetail(h)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{width:52,height:52,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <span style={{fontSize:20,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{h.score}</span>
-                      <span style={{fontSize:8,color:C.muted,letterSpacing:1}}>SCORE</span>
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:2}}>{h.summary}</div>
-                      <div style={{fontSize:11,color:C.muted}}>{formatDate(h.date)}{i===0&&<span style={{marginLeft:6,background:C.accent+"22",color:C.accent,borderRadius:100,padding:"1px 8px",fontSize:10,fontWeight:700}}>最新</span>}</div>
-                    </div>
-                    <div style={{color:C.muted,fontSize:16}}>›</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div></div>
-    );
-  }
-
   // ── HISTORY DETAIL ────────────────────────────────────────────────────────
   if (phase==="historyList" && historyDetail) {
     const h = historyDetail;
@@ -472,6 +429,49 @@ export default function WalkingVideoAnalyzer() {
           </div>
         )}
         <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{width:"100%",padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bg,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>この利用者で新しく測定 →</button>
+      </div></div>
+    );
+  }
+
+  // ── HISTORY LIST ──────────────────────────────────────────────────────────
+  if (phase==="historyList" && historyPatient) {
+    const hist = historyPatient.history || [];
+    return (
+      <div style={wrap}><div style={maxW}>
+        <div style={{paddingTop:40,marginBottom:24}}>
+          <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:"'Noto Sans JP',sans-serif"}}>← 利用者選択に戻る</button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
+              <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
+            </div>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bg,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>新しく測定 →</button>
+          </div>
+        </div>
+        {hist.length===0?(
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {hist.map((h,i)=>{
+              const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
+              return (
+                <div key={i} onClick={()=>setHistoryDetail(h)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:52,height:52,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:20,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{h.score}</span>
+                      <span style={{fontSize:8,color:C.muted,letterSpacing:1}}>SCORE</span>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:2}}>{h.summary}</div>
+                      <div style={{fontSize:11,color:C.muted}}>{formatDate(h.date)}{i===0&&<span style={{marginLeft:6,background:C.accent+"22",color:C.accent,borderRadius:100,padding:"1px 8px",fontSize:10,fontWeight:700}}>最新</span>}</div>
+                    </div>
+                    <div style={{color:C.muted,fontSize:16}}>›</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div></div>
     );
   }
