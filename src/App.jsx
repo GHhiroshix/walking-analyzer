@@ -1,12 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { supabase } from "./supabase";
-
-// Handle email confirmation redirect
-if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
-  supabase.auth.getSession().then(() => {
-    window.location.href = window.location.origin;
-  });
-}
+import { supabase } from "./supabase.js";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
@@ -16,17 +9,49 @@ const C = {
   muted: "#4a6070", mutedLight: "#7a9ab0",
 };
 
-// ─── Storage ──────────────────────────────────────────────────────────────────
-const STORAGE_KEY = "wga_users_v2";
-function loadUsers() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; } }
-function saveUsers(u) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(u)); } catch {} }
-function getUserHistory(uid) { return loadUsers()[uid]?.history || []; }
-function saveRecord(uid, name, rec) {
-  const u = loadUsers();
-  if (!u[uid]) u[uid] = { name, history: [] };
-  u[uid].history.unshift(rec);
-  if (u[uid].history.length > 20) u[uid].history = u[uid].history.slice(0, 20);
-  saveUsers(u);
+// ─── Supabase Storage ─────────────────────────────────────────────────────────
+async function getPatients(facilityId) {
+  const { data, error } = await supabase
+    .from("patients")
+    .select("id, name, created_at")
+    .eq("facility_id", facilityId)
+    .order("created_at", { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function createPatient(facilityId, name) {
+  const { data, error } = await supabase
+    .from("patients")
+    .insert({ facility_id: facilityId, name })
+    .select()
+    .single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function getPatientHistory(patientId) {
+  const { data, error } = await supabase
+    .from("gait_analyses")
+    .select("id, result_text, analyzed_at")
+    .eq("patient_id", patientId)
+    .order("analyzed_at", { ascending: false })
+    .limit(20);
+  if (error) { console.error(error); return []; }
+  return (data || []).map(row => {
+    try {
+      const parsed = JSON.parse(row.result_text);
+      return { ...parsed, date: row.analyzed_at, id: row.id };
+    } catch { return null; }
+  }).filter(Boolean);
+}
+
+async function saveAnalysis(patientId, facilityId, record, fullResult) {
+  const resultText = JSON.stringify({ ...record, ...fullResult });
+  const { error } = await supabase
+    .from("gait_analyses")
+    .insert({ patient_id: patientId, facility_id: facilityId, result_text: resultText });
+  if (error) console.error(error);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,7 +88,6 @@ const buildPrompt = (frameCount, history) => {
 
 【補助具・環境の検出】
 - 杖（一本杖・四点杖・ロフストランドクラッチなど）、歩行器、シルバーカーなどを検出してください。
-- ベビーカーは絶対に出力しないでください。高齢者が使用している手押し車・カートは必ず「シルバーカー」または「歩行器」と判定してください。
 - 壁や廊下の手すりも検出してください。
 - 補助具・手すりの使い方が適切か（荷重・高さ・グリップ位置）も評価してください。
 - 体操提案は補助具の有無・種類に合わせた内容にしてください。
@@ -97,27 +121,6 @@ ${historyBlock}
 };
 
 // ─── Sub components ───────────────────────────────────────────────────────────
-
-function RadarChart({gait}){
-  const labels=["歩行リズム","歩幅","体幹・姿勢","腕振り","足のクリアランス"];
-  const sc=v=>v&&(v.includes("良好")||v.includes("規則的")||v.includes("確保"))?85:v&&v.includes("やや")?60:v&&(v.includes("不規則")||v.includes("小刻み")||v.includes("前傾")||v.includes("制限"))?40:65;
-  const vals=[sc(gait.cadence),sc(gait.stride),sc(gait.posture),sc(gait.armSwing),sc(gait.footClearance)];
-  const cx=110,cy=110,r=75,n=5;
-  const pt=(i,rad)=>({x:cx+rad*Math.cos((-90+360/n*i)*Math.PI/180),y:cy+rad*Math.sin((-90+360/n*i)*Math.PI/180)});
-  const col=C.accent;
-  const dataPath=vals.map((v,i)=>{const p=pt(i,r*v/100);return(i===0?"M ":"L ")+p.x+" "+p.y;}).join(" ")+" Z";
-  return(
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"8px 0"}}>
-      <svg width={220} height={240} style={{overflow:"visible"}}>
-        {[25,50,75,100].map(p=>{const ps=labels.map((_,i)=>pt(i,r*p/100));return(<path key={p} d={ps.map((q,i)=>(i===0?"M ":"L ")+q.x+" "+q.y).join(" ")+" Z"} fill="none" stroke={C.border} strokeWidth={1}/>);})}
-        {labels.map((_,i)=>(<line key={i} x1={cx} y1={cy} x2={pt(i,r).x} y2={pt(i,r).y} stroke={C.border} strokeWidth={1}/>))}
-        <path d={dataPath} fill={col+"33"} stroke={col} strokeWidth={2}/>
-        {vals.map((v,i)=>{const p=pt(i,r*v/100);return(<circle key={i} cx={p.x} cy={p.y} r={4} fill={col} stroke={C.bg} strokeWidth={2}/>);})}
-        {labels.map((lb,i)=>{const p=pt(i,r+26);return(<text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={10} fill={C.mutedLight} fontFamily="Noto Sans JP,sans-serif">{lb}</text>);})}
-      </svg>
-    </div>
-  );
-}
 function ScoreArc({ score }) {
   const size=160, cx=80, cy=80, r=62;
   const angle = -210 + (score/100)*240;
@@ -211,33 +214,6 @@ function SeverityDot({ s }) {
   return <span style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:col,marginRight:6,flexShrink:0,marginTop:5}}/>;
 }
 
-
-
-
-function getExerciseImage(name){
-  if(!name) return null;
-  if(name.includes("ストレッチ")||name.includes("伸ば")||name.includes("前屈")) return "/exercises/stretch_man.png";
-  if(name.includes("体操")||name.includes("側屈")||name.includes("横")||name.includes("肩甲")||name.includes("肩")||name.includes("回し")) return "/exercises/taisou_oldwoman.png";
-  if(name.includes("アキレス")||name.includes("ふくらはぎ")||name.includes("大股")||name.includes("歩き")||name.includes("股関節")||name.includes("踏み出")) return "/exercises/achilles_old_woman.png";
-  if(name.includes("バランス")||name.includes("片足")||name.includes("立位")||name.includes("スクワット")||name.includes("膝")||name.includes("姿勢")) return "/exercises/achilles_old_man.png";
-  return "/exercises/taisou_oldwoman.png";
-}
-
-function getExerciseIcon(name){
-  if(!name) return {icon:"🏃",color:"#39e0b0",label:"体操"};
-  if(name.includes("壁")) return {icon:"🧱",color:"#4da6ff",label:"姿勢改善"};
-  if(name.includes("大股")||name.includes("歩き")||name.includes("歩行")) return {icon:"🚶",color:"#39e0b0",label:"歩行訓練"};
-  if(name.includes("肩甲")||name.includes("肩")||name.includes("回し")) return {icon:"🔄",color:"#c084fc",label:"肩・腕"};
-  if(name.includes("スクワット")||name.includes("膝")||name.includes("立ち上")) return {icon:"🦵",color:"#f5a623",label:"下肢強化"};
-  if(name.includes("ストレッチ")||name.includes("伸ば")) return {icon:"🤸",color:"#39e0b0",label:"柔軟"};
-  if(name.includes("バランス")||name.includes("片足")||name.includes("立位")) return {icon:"⚖️",color:"#f5a623",label:"バランス"};
-  if(name.includes("体幹")||name.includes("腹筋")||name.includes("背筋")) return {icon:"💪",color:"#ff4d6d",label:"体幹"};
-  if(name.includes("足首")||name.includes("つま先")||name.includes("かかと")) return {icon:"🦶",color:"#39e0b0",label:"足首"};
-  if(name.includes("股関節")||name.includes("股")) return {icon:"🔁",color:"#4da6ff",label:"股関節"};
-  if(name.includes("呼吸")||name.includes("深呼吸")) return {icon:"🌬️",color:"#4da6ff",label:"呼吸"};
-  return {icon:"🏃",color:"#39e0b0",label:"体操"};
-}
-
 function ExerciseCard({ ex, idx }) {
   const [open,setOpen]=useState(false);
   const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
@@ -257,36 +233,6 @@ function ExerciseCard({ ex, idx }) {
       </div>
       {open&&(
         <div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
-          {(()=>{
-            const ic=getExerciseIcon(ex.name);
-            const img=getExerciseImage(ex.name);
-            return(
-              <div style={{
-                width:"100%",borderRadius:14,marginBottom:16,overflow:"hidden",
-                background:`linear-gradient(135deg, ${ic.color}22 0%, ${C.surface} 100%)`,
-                border:`1.5px solid ${ic.color}44`,
-              }}>
-                {img && (
-                  <div style={{
-                    width:"100%",display:"flex",justifyContent:"center",
-                    background:`linear-gradient(180deg, ${ic.color}18 0%, ${C.surface} 100%)`,
-                    padding:"16px 0 0",
-                  }}>
-                    <img src={img} alt={ex.name}
-                      style={{height:140,objectFit:"contain",filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.4))"}}
-                    />
-                  </div>
-                )}
-                <div style={{padding:"12px 16px 14px",display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{fontSize:28}}>{ic.icon}</div>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:900,color:ic.color}}>{ic.label}</div>
-                    <div style={{fontSize:11,color:C.mutedLight,marginTop:2}}>{ex.target} ／ {ex.duration}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
           {ex.steps.map((s,i)=>(
             <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
               <span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span>
@@ -314,231 +260,21 @@ function FrameStrip({ frames, current, onSelect }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-
-function PrintView({result, userName, history}){
-  const today = formatDate(new Date().toISOString());
-  const score = result.score;
-  const scoreCol = score>=75?"#00c48c":score>=50?"#f5a623":"#ff4d6d";
-  return(
-    <div id="print-view" style={{display:"none"}}>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #print-view, #print-view * { visibility: visible; }
-          #print-view { position: fixed; top: 0; left: 0; width: 100%; background: white; z-index: 99999; }
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          @page { margin: 12mm; size: A4 portrait; }
-          .page-break { page-break-before: always; }
-        }
-      `}</style>
-      <div style={{fontFamily:"Noto Sans JP,sans-serif",color:"#111",background:"#fff",maxWidth:700,margin:"0 auto"}}>
-
-        {/* Header */}
-        <div style={{borderBottom:"3px solid #00c48c",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
-          <div>
-            <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:4}}>歩行動作AI解析レポート</div>
-            <div style={{fontSize:22,fontWeight:900,color:"#111"}}>{userName} 様</div>
-            <div style={{fontSize:12,color:"#555",marginTop:4}}>測定日：{today}　／　測定回数：{history.length}回目</div>
-          </div>
-          <div style={{textAlign:"center",background:"#f8f8f8",borderRadius:12,padding:"10px 20px",border:"2px solid #00c48c"}}>
-            <div style={{fontSize:42,fontWeight:900,color:scoreCol,lineHeight:1}}>{score}</div>
-            <div style={{fontSize:10,color:"#888",letterSpacing:2}}>GAIT SCORE</div>
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div style={{background:"#f0faf6",borderRadius:8,padding:"10px 16px",marginBottom:20,borderLeft:"4px solid #00c48c"}}>
-          <div style={{fontSize:14,fontWeight:700,color:"#00c48c",marginBottom:4}}>総合評価</div>
-          <div style={{fontSize:14,color:"#111"}}>{result.summary}</div>
-          {result.progress && <div style={{fontSize:12,color:"#555",marginTop:6}}>前回比：{result.progress}</div>}
-        </div>
-
-        {/* Aids */}
-        {result.aids && result.aids.detected && result.aids.detected.length > 0 && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>補助具・手すり</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
-              {result.aids.detected.map((a,i)=>(
-                <span key={i} style={{background:"#e8f4ff",border:"1px solid #4da6ff",borderRadius:100,padding:"3px 12px",fontSize:12,color:"#2266cc"}}>🦯 {a}</span>
-              ))}
-            </div>
-            {result.aids.usage && <div style={{fontSize:12,color:"#333",marginBottom:4}}>使い方：{result.aids.usage}</div>}
-            {result.aids.recommendation && <div style={{fontSize:12,color:"#c07000"}}>💡 {result.aids.recommendation}</div>}
-          </div>
-        )}
-
-        {/* Gait metrics */}
-        {result.gait && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>歩行指標</div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <tbody>
-                {[
-                  ["歩行リズム",result.gait.cadence],
-                  ["歩幅",result.gait.stride],
-                  ["体幹・姿勢",result.gait.posture],
-                  ["腕振り",result.gait.armSwing],
-                  ["足のクリアランス",result.gait.footClearance],
-                ].map(([label,val])=>(
-                  <tr key={label} style={{borderBottom:"1px solid #f0f0f0"}}>
-                    <td style={{padding:"6px 8px",fontWeight:700,color:"#555",width:120,whiteSpace:"nowrap"}}>{label}</td>
-                    <td style={{padding:"6px 8px",color:"#111"}}>{val}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Issues */}
-        {result.issues && result.issues.length > 0 && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>課題</div>
-            {result.issues.map((issue,i)=>{
-              const col = issue.severity==="high"?"#ff4d6d":issue.severity==="medium"?"#f5a623":"#00c48c";
-              return(
-                <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0,marginTop:5}}/>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#111"}}>{issue.title}</div>
-                    <div style={{fontSize:11,color:"#555"}}>{issue.detail}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Page break */}
-        <div className="page-break"/>
-
-        {/* Exercises */}
-        {result.exercises && result.exercises.length > 0 && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:12}}>推奨体操プログラム</div>
-            {result.exercises.map((ex,i)=>(
-              <div key={i} style={{marginBottom:16,padding:"12px 14px",border:"1px solid #e0e0e0",borderRadius:8,breakInside:"avoid"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:900,color:"#111"}}>{ex.name}</div>
-                    <div style={{fontSize:11,color:"#888",marginTop:2}}>{ex.target} ／ {ex.duration}</div>
-                  </div>
-                  <span style={{fontSize:10,background:"#f0faf6",color:"#00c48c",border:"1px solid #00c48c",borderRadius:4,padding:"2px 8px",whiteSpace:"nowrap"}}>体操{i+1}</span>
-                </div>
-                <ol style={{margin:"0 0 8px 16px",padding:0}}>
-                  {ex.steps.map((s,j)=>(
-                    <li key={j} style={{fontSize:12,color:"#333",marginBottom:4,lineHeight:1.6}}>{s}</li>
-                  ))}
-                </ol>
-                <div style={{fontSize:11,color:"#00804a",background:"#f0faf6",padding:"5px 10px",borderRadius:4}}>💡 {ex.effect}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Lifestyle */}
-        {result.lifestyle && result.lifestyle.length > 0 && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,borderBottom:"1px solid #ddd",paddingBottom:4,marginBottom:10}}>生活アドバイス</div>
-            {result.lifestyle.map((tip,i)=>(
-              <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
-                <span style={{width:20,height:20,borderRadius:4,background:"#f0faf6",color:"#00c48c",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
-                <div style={{fontSize:12,color:"#333",lineHeight:1.6}}>{tip}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div style={{borderTop:"1px solid #ddd",paddingTop:10,marginTop:20,display:"flex",justifyContent:"space-between",fontSize:10,color:"#aaa"}}>
-          <span>歩行動作AI解析アプリ — walking-analyzer.vercel.app</span>
-          <span>※本レポートはAIによる参考情報です。医療診断の代替ではありません。</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [mode, setMode] = useState("login"); // login | signup
-
-  const handleSubmit = async () => {
-    if (!email || !password) { setError("メールアドレスとパスワードを入力してください"); return; }
-    setLoading(true); setError(null);
-    try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setError("確認メールを送信しました。メールを確認してください。");
-        setMode("login");
-        return;
-      }
-      onLogin();
-    } catch (e) {
-      setError(e.message || "エラーが発生しました");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
-      <div style={{width:"100%",maxWidth:400}}>
-        <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
-          <h1 style={{fontSize:26,fontWeight:900,margin:0,color:C.text}}>歩行動作<br/><span style={{color:C.accent}}>AI解析アプリ</span></h1>
-          <p style={{color:C.muted,marginTop:12,fontSize:13}}>{mode==="login"?"アカウントにログイン":"新規アカウント登録"}</p>
-        </div>
-
-        {error && (
-          <div style={{background:error.includes("確認メール")?C.accent+"18":C.red+"18",border:`1px solid ${error.includes("確認メール")?C.accent:C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:error.includes("確認メール")?C.accent:C.red}}>
-            {error}
-          </div>
-        )}
-
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px 20px"}}>
-          <div style={{marginBottom:14}}>
-            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>メールアドレス</div>
-            <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="example@email.com"
-              style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none",boxSizing:"border-box"}}/>
-          </div>
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>パスワード</div>
-            <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="6文字以上"
-              onKeyDown={e=>e.key==="Enter"&&handleSubmit()}
-              style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none",boxSizing:"border-box"}}/>
-          </div>
-          <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"14px",background:loading?C.border:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:loading?C.muted:C.bg,fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",fontFamily:"'Noto Sans JP',sans-serif",boxShadow:loading?"none":`0 4px 20px ${C.accent}33`}}>
-            {loading?"処理中...":mode==="login"?"ログイン":"アカウント登録"}
-          </button>
-        </div>
-
-        <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError(null);}} style={{width:"100%",marginTop:12,padding:"12px",background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>
-          {mode==="login"?"アカウントを作成する →":"ログインはこちら →"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function WalkingVideoAnalyzer() {
+  const [phase, setPhase] = useState("loading");
+  const [authMode, setAuthMode] = useState("loading"); // "login" | "signup"
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
   const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [phase, setPhase] = useState("consent");
+
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
-  const [users, setUsers] = useState({});
-  const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [patientId, setPatientId] = useState(null);
+  const [patientName, setPatientName] = useState("");
   const [nameInput, setNameInput] = useState("");
+  const [patientHistory, setPatientHistory] = useState([]);
   const [videoUrl, setVideoUrl] = useState(null);
   const [frames, setFrames] = useState([]);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -551,38 +287,52 @@ export default function WalkingVideoAnalyzer() {
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // ── 認証状態の監視 ────────────────────────────────────────────────────────
   useEffect(() => {
+const timeout = setTimeout(() => setPhase("login"), 3000);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s) {
+        setPhase("consent");
+        loadPatients(s.user.id);
+      } else {
+        setPhase("login");
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      if (s) {
+        setPhase("consent");
+        loadPatients(s.user.id);
+      }
+    });
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap";
     document.head.appendChild(l);
-    // Print styles
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @media print {
-        body { background: #fff !important; color: #000 !important; }
-        button { display: none !important; }
-        .no-print { display: none !important; }
-        * { color: #000 !important; background: #fff !important; border-color: #ccc !important; box-shadow: none !important; }
-        img { max-width: 100% !important; }
-        @page { margin: 15mm; size: A4; }
-      }
-    `;
-    document.head.appendChild(style);
-    setUsers(loadUsers());
-    // Supabase auth
-    const _t = setTimeout(() => setAuthLoading(false), 4000);
-    supabase.auth.getSession().then(({data:{session}}) => {
-      clearTimeout(_t); setSession(session); setAuthLoading(false);
-    }).catch(() => { clearTimeout(_t); setAuthLoading(false); });
-    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,s) => {
-      setSession(s); setAuthLoading(false);
-    });
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
-  const wrap = {minHeight:"100vh",minHeight:"-webkit-fill-available",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px max(48px, env(safe-area-inset-bottom))",paddingLeft:"max(16px, env(safe-area-inset-left))",paddingRight:"max(16px, env(safe-area-inset-right))"};
-  const maxW = {width:"100%",maxWidth:480,margin:"0 auto"};
+  const loadPatients = async (facilityId) => {
+    const list = await getPatients(facilityId);
+    const withHistory = await Promise.all(list.map(async p => {
+      const hist = await getPatientHistory(p.id);
+      return { ...p, history: hist };
+    }));
+    setPatients(withHistory);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setPhase("login");
+    setPatients([]);
+    setPatientId(null);
+    setPatientName("");
+    setChecks({c1:false,c2:false,c3:false,c4:false});
+  };
+
+  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:"'Noto Sans JP',sans-serif",color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px"};
+  const maxW = {width:"100%",maxWidth:520};
 
   const handleFile = useCallback((file) => {
     if (!file) return;
@@ -638,33 +388,29 @@ export default function WalkingVideoAnalyzer() {
         setFrames(extracted);
         setProgressLabel("AIが歩行を解析中...");
         setPhase("analyzing");
-        const currentHistory = getUserHistory(userId);
         const imageContent = extracted.flatMap((f,i) => ([
           {type:"text",text:`【フレーム${i+1}/${extracted.length} — ${formatTime(f.time)}】`},
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.b64}},
         ]));
-        imageContent.push({type:"text",text:buildPrompt(extracted.length,currentHistory)});
+        imageContent.push({type:"text",text:buildPrompt(extracted.length, patientHistory)});
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
-          headers:{"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:2500,messages:[{role:"user",content:imageContent}]}),
+          headers:{"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
         if (data.error) throw new Error(data.error.message||"APIエラー");
         const raw = (data.content||[]).map(b=>b.text||"").join("");
-        const rawFixed = raw.replace(/ベビーカー/g, "シルバーカー");
-        const jsonMatch = rawFixed.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("AIの返答からJSONを取得できませんでした");
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
-        const record={date:new Date().toISOString(),score:parsed.score,summary:parsed.summary,issues:parsed.issues,exercises:parsed.exercises};
-        saveRecord(userId,userName,record);
-        setUsers(loadUsers());
+        const record = { date: new Date().toISOString(), score: parsed.score, summary: parsed.summary, issues: parsed.issues, exercises: parsed.exercises };
+        await saveAnalysis(patientId, session.user.id, record, parsed);
+        const newHistory = await getPatientHistory(patientId);
+        setPatientHistory(newHistory);
         setResult(parsed);
-        const sh=getUserHistory(userId);
-        setActiveTab(sh.length>1?"compare":"gait");
+        setActiveTab(newHistory.length>1?"compare":"gait");
         setPhase("result");
       } finally {
         vid.src=""; document.body.removeChild(vid);
@@ -676,22 +422,59 @@ export default function WalkingVideoAnalyzer() {
     }
   };
 
-  const restart = () => {
+  const restart = async () => {
     setPhase("userSelect");
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     setVideoUrl(null); setFrames([]); setResult(null);
     setError(null); setProgress(0); setActiveTab("gait"); setCurrentFrame(0);
-    setUsers(loadUsers());
+    if (session) await loadPatients(session.user.id);
   };
 
-  // ── AUTH CHECK ─────────────────────────────────────────────────────────────
-  if (authLoading) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{color:C.accent,fontSize:16}}>読み込み中...</div>
-    </div>
-  );
-
-  if (!session) return <LoginScreen onLogin={()=>setAuthLoading(true)}/>;
+  // ── LOGIN ─────────────────────────────────────────────────────────────────
+  if (phase==="login") {
+    const handleAuth = async () => {
+      if (!authEmail.trim() || !authPassword.trim()) return;
+      setAuthLoading(true); setAuthError(null);
+      let error;
+      if (authMode==="signup") {
+        const res = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+        error = res.error;
+        if (!error) {
+          setAuthError("確認メールを送信しました。メールのリンクをクリックしてからログインしてください。");
+          setAuthMode("login");
+          setAuthLoading(false);
+          return;
+        }
+      } else {
+        const res = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+        error = res.error;
+      }
+      if (error) setAuthError(error.message);
+      setAuthLoading(false);
+    };
+    return (
+      <div style={wrap}><div style={maxW}>
+        <div style={{paddingTop:60,marginBottom:32,textAlign:"center"}}>
+          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
+          <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>{authMode==="login"?"施設ログイン":"施設アカウント登録"}</h1>
+          <p style={{color:C.muted,marginTop:10,fontSize:13}}>{authMode==="login"?"メールアドレスとパスワードでログイン":"施設のメールとパスワードを設定"}</p>
+        </div>
+        {authError&&<div style={{background:authError.includes("確認メール")?C.accent+"18":C.red+"18",border:`1px solid ${authError.includes("確認メール")?C.accent+"33":C.red+"33"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:authError.includes("確認メール")?C.accent:C.red}}>{authError}</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+          <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
+          <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} placeholder="パスワード（8文字以上）" type="password" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:"'Noto Sans JP',sans-serif",outline:"none"}}/>
+        </div>
+        <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPassword.trim()} style={{width:"100%",padding:"14px",background:authEmail.trim()&&authPassword.trim()?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:authEmail.trim()&&authPassword.trim()?C.bg:C.muted,fontSize:15,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:"'Noto Sans JP',sans-serif",marginBottom:14}}>
+          {authLoading?"処理中...":authMode==="login"?"ログイン →":"アカウントを作成 →"}
+        </button>
+        <div style={{textAlign:"center"}}>
+          <button onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthError(null);}} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:13,fontFamily:"'Noto Sans JP',sans-serif"}}>
+            {authMode==="login"?"アカウントをお持ちでない方はこちら →":"ログイン画面に戻る"}
+          </button>
+        </div>
+      </div></div>
+    );
+  }
 
   // ── CONSENT ───────────────────────────────────────────────────────────────
   if (phase==="consent") {
@@ -704,7 +487,10 @@ export default function WalkingVideoAnalyzer() {
     ];
     return (
       <div style={wrap}><div style={maxW}>
-        <div style={{paddingTop:48,marginBottom:28,textAlign:"center"}}>
+        <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
+          <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:"'Noto Sans JP',sans-serif"}}>ログアウト</button>
+        </div>
+        <div style={{paddingTop:24,marginBottom:28,textAlign:"center"}}>
           <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
           <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>ご利用前の<br/><span style={{color:C.accent}}>同意確認</span></h1>
           <p style={{color:C.muted,marginTop:12,fontSize:13,lineHeight:1.8}}>本アプリは歩行動画をAIで解析します。<br/>下記をご確認のうえ、すべてにチェックをお願いします。</p>
@@ -738,12 +524,23 @@ export default function WalkingVideoAnalyzer() {
 
   // ── USER SELECT ───────────────────────────────────────────────────────────
   if (phase==="userSelect") {
-    const userList=Object.entries(users);
-    const selectExisting=(uid)=>{setUserId(uid);setUserName(users[uid].name);setPhase("upload");};
-    const addNew=()=>{
-      if(!nameInput.trim()) return;
-      const uid="u_"+Date.now();
-      setUserId(uid);setUserName(nameInput.trim());setNameInput("");setPhase("upload");
+    const selectExisting = async (p) => {
+      setPatientId(p.id);
+      setPatientName(p.name);
+      const hist = await getPatientHistory(p.id);
+      setPatientHistory(hist);
+      setPhase("upload");
+    };
+    const addNew = async () => {
+      if (!nameInput.trim()) return;
+      const newPatient = await createPatient(session.user.id, nameInput.trim());
+      if (!newPatient) { setError("登録に失敗しました。再度お試しください。"); return; }
+      setPatientId(newPatient.id);
+      setPatientName(newPatient.name);
+      setPatientHistory([]);
+      setNameInput("");
+      await loadPatients(session.user.id);
+      setPhase("upload");
     };
     return (
       <div style={wrap}><div style={maxW}>
@@ -752,17 +549,18 @@ export default function WalkingVideoAnalyzer() {
           <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
           <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
         </div>
-        {userList.length>0&&(
+        {error&&<div style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red}}>⚠️ {error}</div>}
+        {patients.length>0&&(
           <div style={{marginBottom:20}}>
             <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済み利用者</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {userList.map(([uid,u])=>{
-                const hist=u.history||[],last=hist[0];
+              {patients.map(p=>{
+                const hist=p.history||[], last=hist[0];
                 return (
-                  <div key={uid} onClick={()=>selectExisting(uid)} style={{display:"flex",alignItems:"center",gap:12,background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
+                  <div key={p.id} onClick={()=>selectExisting(p)} style={{display:"flex",alignItems:"center",gap:12,background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
                     <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>👤</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:15,color:C.text}}>{u.name}</div>
+                      <div style={{fontWeight:700,fontSize:15,color:C.text}}>{p.name}</div>
                       <div style={{fontSize:11,color:C.muted,marginTop:2}}>{hist.length>0?`${hist.length}回測定済み ／ 最終: ${formatDate(last.date)} ／ スコア: ${last.score}`:"測定歴なし"}</div>
                     </div>
                     <div style={{color:C.muted,fontSize:16}}>›</div>
@@ -772,7 +570,6 @@ export default function WalkingVideoAnalyzer() {
             </div>
           </div>
         )}
-        <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginBottom:12,padding:"12px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",gap:8}}>
@@ -786,7 +583,6 @@ export default function WalkingVideoAnalyzer() {
 
   // ── UPLOAD ────────────────────────────────────────────────────────────────
   if (phase==="upload") {
-    const history=getUserHistory(userId);
     return (
       <div style={wrap}><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:20}}>
@@ -794,8 +590,8 @@ export default function WalkingVideoAnalyzer() {
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:36,height:36,borderRadius:"50%",background:C.accent+"1a",border:`1px solid ${C.accent}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div>
             <div>
-              <div style={{fontWeight:700,fontSize:15}}>{userName}</div>
-              <div style={{fontSize:11,color:C.muted}}>{history.length>0?`${history.length+1}回目の測定`:"初回測定"}</div>
+              <div style={{fontWeight:700,fontSize:15}}>{patientName}</div>
+              <div style={{fontSize:11,color:C.muted}}>{patientHistory.length>0?`${patientHistory.length+1}回目の測定`:"初回測定"}</div>
             </div>
           </div>
         </div>
@@ -878,10 +674,9 @@ export default function WalkingVideoAnalyzer() {
 
   // ── RESULT ────────────────────────────────────────────────────────────────
   if (phase==="result"&&result) {
-    const history=getUserHistory(userId);
-    const prevRecord=history.length>1?history[1]:null;
+    const prevRecord=patientHistory.length>1?patientHistory[1]:null;
     const tabs=[
-      ...(history.length>1?[{id:"compare",label:"比較",icon:"📈"}]:[]),
+      ...(patientHistory.length>1?[{id:"compare",label:"比較",icon:"📈"}]:[]),
       {id:"gait",label:"歩行指標",icon:"📊"},
       {id:"issues",label:"課題",icon:"⚠️"},
       {id:"exercises",label:"体操",icon:"🏃"},
@@ -892,13 +687,13 @@ export default function WalkingVideoAnalyzer() {
         <div style={{paddingTop:32}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
             <div style={{width:28,height:28,borderRadius:"50%",background:C.accent+"1a",border:`1px solid ${C.accent}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>👤</div>
-            <span style={{fontWeight:700,color:C.text}}>{userName}</span>
-            <span style={{fontSize:11,color:C.muted}}>— {history.length}回目 / {formatDate(history[0]?.date)}</span>
+            <span style={{fontWeight:700,color:C.text}}>{patientName}</span>
+            <span style={{fontSize:11,color:C.muted}}>— {patientHistory.length}回目 / {formatDate(patientHistory[0]?.date)}</span>
           </div>
           <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"28px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
             <ScoreArc score={result.score}/>
             <div style={{fontWeight:900,fontSize:17,marginTop:4,textAlign:"center"}}>{result.summary}</div>
-            {history.length>1&&<ScoreHistoryChart history={history}/>}
+            {patientHistory.length>1&&<ScoreHistoryChart history={patientHistory}/>}
           </div>
           {frames.length>0&&(
             <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}>
@@ -915,11 +710,11 @@ export default function WalkingVideoAnalyzer() {
           {activeTab==="compare"&&(
             <div>
               <ComparePanel current={result} prev={prevRecord}/>
-              {history.length>2&&(
+              {patientHistory.length>2&&(
                 <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
                   <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>
-                  {history.slice(0,5).map((h,i)=>(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(history.length,5)-1?`1px solid ${C.border}`:"none"}}>
+                  {patientHistory.slice(0,5).map((h,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}>
                       <div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div>
                       <div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div>
                       <div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div>
@@ -944,7 +739,7 @@ export default function WalkingVideoAnalyzer() {
                 </div>
               )}
               <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><RadarChart gait={result.gait}/>
+                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div>
                 <GaitMetricBar label="歩行リズム" value={result.gait.cadence} color={C.accent}/>
                 <GaitMetricBar label="歩幅" value={result.gait.stride} color={C.blue}/>
                 <GaitMetricBar label="体幹・姿勢" value={result.gait.posture} color={C.amber}/>
@@ -965,7 +760,7 @@ export default function WalkingVideoAnalyzer() {
           )}
           {activeTab==="exercises"&&(
             <div>
-              {history.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}
+              {patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}
               {(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}
             </div>
           )}
@@ -979,63 +774,14 @@ export default function WalkingVideoAnalyzer() {
               ))}
             </div>
           )}
-          <button onClick={()=>{
-            const r = result;
-            const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>歩行解析レポート - ${userName}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-            <style>
-              body{font-family:'Noto Sans JP',sans-serif;color:#111;background:#fff;margin:0;padding:16px 20px;max-width:720px;margin:0 auto;}
-              h1{font-size:13px;color:#888;letter-spacing:2px;font-weight:400;margin:0 0 4px;}
-              .header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #00c48c;padding-bottom:12px;margin-bottom:18px;}
-              .name{font-size:22px;font-weight:900;}
-              .sub{font-size:12px;color:#555;margin-top:3px;}
-              .score-box{text-align:center;background:#f8f8f8;border-radius:10px;padding:8px 18px;border:2px solid #00c48c;}
-              .score-num{font-size:40px;font-weight:900;color:#00c48c;line-height:1;}
-              .score-label{font-size:9px;color:#888;letter-spacing:2px;}
-              .summary{background:#f0faf6;border-radius:8px;padding:10px 14px;margin-bottom:16px;border-left:4px solid #00c48c;}
-              .section-title{font-size:13px;font-weight:700;border-bottom:1px solid #ddd;padding-bottom:4px;margin:16px 0 10px;}
-              table{width:100%;border-collapse:collapse;font-size:12px;}
-              td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
-              td:first-child{font-weight:700;color:#555;width:110px;}
-              .issue{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;font-size:12px;}
-              .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-              .ex-card{border:1px solid #e0e0e0;border-radius:8px;padding:10px 12px;margin-bottom:10px;break-inside:avoid;}
-              .ex-title{font-size:13px;font-weight:900;margin-bottom:2px;}
-              .ex-sub{font-size:11px;color:#888;margin-bottom:8px;}
-              ol{margin:0 0 8px 16px;padding:0;font-size:12px;}
-              li{margin-bottom:3px;line-height:1.6;}
-              .effect{font-size:11px;color:#00804a;background:#f0faf6;padding:4px 8px;border-radius:4px;}
-              .tip{display:flex;gap:8px;margin-bottom:6px;font-size:12px;align-items:flex-start;}
-              .tip-num{width:20px;height:20px;border-radius:4px;background:#f0faf6;color:#00c48c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-              .footer{border-top:1px solid #ddd;padding-top:8px;margin-top:20px;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
-              .page-break{page-break-before:always;}
-              @media print{@page{margin:12mm;size:A4 portrait;}}
-              .aids-badge{background:#e8f4ff;border:1px solid #4da6ff;border-radius:100px;padding:3px 10px;font-size:11px;color:#2266cc;display:inline-block;margin-right:4px;}
-            </style></head><body>
-            <div class="header">
-              <div><h1>歩行動作AI解析レポート</h1><div class="name">${userName} 様</div><div class="sub">測定日：${new Date().toLocaleDateString('ja-JP')}　／　${getUserHistory(userId).length}回目の測定</div></div>
-              <div class="score-box"><div class="score-num" style="color:${r.score>=75?'#00c48c':r.score>=50?'#f5a623':'#ff4d6d'}">${r.score}</div><div class="score-label">GAIT SCORE</div></div>
-            </div>
-            <div class="summary"><b style="color:#00c48c">総合評価：</b>${r.summary}${r.progress?'<br><span style="font-size:12px;color:#555">前回比：'+r.progress+'</span>':''}</div>
-            ${r.aids&&r.aids.detected&&r.aids.detected.length>0?'<div class="section-title">補助具・手すり</div><div style="margin-bottom:16px">'+r.aids.detected.map(a=>'<span class="aids-badge">🦯 '+a+'</span>').join('')+(r.aids.usage?'<div style="font-size:12px;margin-top:8px;color:#333">使い方：'+r.aids.usage+'</div>':'')+(r.aids.recommendation?'<div style="font-size:12px;margin-top:4px;color:#c07000">💡 '+r.aids.recommendation+'</div>':'')+'</div>':''}
-            ${r.gait?'<div class="section-title">歩行指標</div><table><tbody><tr><td>歩行リズム</td><td>'+r.gait.cadence+'</td></tr><tr><td>歩幅</td><td>'+r.gait.stride+'</td></tr><tr><td>体幹・姿勢</td><td>'+r.gait.posture+'</td></tr><tr><td>腕振り</td><td>'+r.gait.armSwing+'</td></tr><tr><td>足のクリアランス</td><td>'+r.gait.footClearance+'</td></tr></tbody></table>':''}
-            ${r.issues&&r.issues.length>0?'<div class="section-title">課題</div>'+r.issues.map(i=>'<div class="issue"><div class="dot" style="background:'+(i.severity==="high"?"#ff4d6d":i.severity==="medium"?"#f5a623":"#00c48c")+'"></div><div><b>'+i.title+'</b><br><span style="color:#555">'+i.detail+'</span></div></div>').join(''):''}
-            <div class="page-break"></div>
-            ${r.exercises&&r.exercises.length>0?'<div class="section-title">推奨体操プログラム</div>'+r.exercises.map((ex,i)=>'<div class="ex-card"><div style="display:flex;justify-content:space-between"><div><div class="ex-title">'+ex.name+'</div><div class="ex-sub">'+ex.target+' ／ '+ex.duration+'</div></div><span style="font-size:10px;background:#f0faf6;color:#00c48c;border:1px solid #00c48c;border-radius:4px;padding:2px 8px;height:fit-content">体操'+(i+1)+'</span></div><ol>'+ex.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="effect">💡 '+ex.effect+'</div></div>').join(''):''}
-            ${r.lifestyle&&r.lifestyle.length>0?'<div class="section-title">生活アドバイス</div>'+r.lifestyle.map((tip,i)=>'<div class="tip"><div class="tip-num">'+(i+1)+'</div><div>'+tip+'</div></div>').join(''):''}
-            <div class="footer"><span>歩行動作AI解析アプリ — walking-analyzer.vercel.app</span><span>※本レポートはAIによる参考情報です。医療診断の代替ではありません。</span></div>
-            </body></html>`;
-            const w = window.open('','_blank','width=800,height=900');
-            w.document.write(html);
-            w.document.close();
-            w.onload = ()=>{ w.focus(); w.print(); };
-          }} style={{width:"100%",marginTop:8,padding:"13px",background:`linear-gradient(135deg,${C.blue},#2563eb)`,border:"none",borderRadius:12,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🖨️ 印刷・PDF保存</button>
-          <PrintView result={result} userName={userName} history={getUserHistory(userId)}/>
-          <button onClick={restart} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
-        <button onClick={()=>{ if(window.confirm("測定履歴をすべて削除しますか？")){localStorage.clear();window.location.reload();}}} style={{width:"100%",marginTop:8,padding:"13px",background:"transparent",border:`1.5px solid ${C.red}33`,borderRadius:12,color:C.red,fontSize:13,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>🗑️ 測定履歴をリセット</button>
+          <button onClick={restart} style={{width:"100%",marginTop:20,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:"'Noto Sans JP',sans-serif"}}>別の動画で再解析</button>
         </div>
       </div></div>
     );
   }
-  return null;
+  if (phase === "loading") return (
+  <div style={{minHeight:"100vh",background:"#07080a",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{color:"#39e0b0",fontSize:16,fontFamily:"'Noto Sans JP',sans-serif"}}>読み込み中...</div>
+  </div>
+);return null;
 }
