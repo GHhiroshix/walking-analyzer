@@ -311,7 +311,7 @@ export default function WalkingVideoAnalyzer() {
         const ctx = canvas.getContext("2d");
         const vw = vid.videoWidth||640, vh = vid.videoHeight||480;
         const w = Math.min(vw,512), fh = Math.round(w*(vh/vw));
-        canvas.width=w; canvas.height=fh;
+        const maxW=800; const scale=w>maxW?maxW/w:1; canvas.width=Math.round(w*scale); canvas.height=Math.round(fh*scale);
         for (let i=0; i<FRAME_COUNT; i++) {
           const t = (i/(FRAME_COUNT-1))*duration*0.85+duration*0.05;
           await new Promise(res => {
@@ -320,7 +320,7 @@ export default function WalkingVideoAnalyzer() {
             vid.currentTime = t;
           });
           await new Promise(r => setTimeout(r, 150));
-          ctx.drawImage(vid, 0, 0, w, fh);
+          ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
           extracted.push({ time:t, b64:toBase64(canvas), w, h:fh });
           setProgress(Math.round(((i+1)/FRAME_COUNT)*40));
         }
