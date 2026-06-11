@@ -333,10 +333,10 @@ export default function WalkingVideoAnalyzer() {
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.b64}},
         ]));
         imageContent.push({type:"text",text:buildPrompt(extracted.length, patientHistory)});
-        const resp = await fetch("/api/analyze", {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:16000,messages:[{role:"user",content:imageContent}]}),
+          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
@@ -676,56 +676,60 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="print"&&result) {
     const handlePrint = () => {
       const style = document.createElement('style');
-      style.innerHTML = `@media print{body *{visibility:hidden;}#print-container,#print-container *{visibility:visible;}#print-container{position:absolute;left:0;top:0;width:100%;background:white;}}`;
+      style.innerHTML = `@media print{body *{visibility:hidden;}#print-container,#print-container *{visibility:visible;}#print-container{position:absolute;left:0;top:0;width:100%;background:#f5f0eb;}}`;
       document.head.appendChild(style);
       window.print();
       document.head.removeChild(style);
     };
+    const sc = result.score>=75?"#2d6a4f":result.score>=50?"#b5451b":"#c1121f";
     return (
-      <div style={{minHeight:"100vh",background:"#fff",fontFamily:"'Kosugi Maru',sans-serif",color:"#111",padding:"20px"}}>
+      <div style={{minHeight:"100vh",background:"#f5f0eb",fontFamily:"'Kosugi Maru',sans-serif",color:"#2c2c2c",padding:"20px"}}>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8}}>
-            <button onClick={()=>setPhase("result")} style={{background:"none",border:"1px solid #ccc",borderRadius:8,padding:"6px 14px",fontSize:13,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif"}}>← 戻る</button>
-            <button onClick={handlePrint} style={{background:"#39e0b0",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#07080a"}}>🖨️ 印刷 / PDF保存</button>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,paddingBottom:12,borderBottom:"1px solid #d9cfc4"}}>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setPhase("result")} style={{background:"#e8e0d5",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#555"}}>← 解析結果</button>
+              <button onClick={()=>{setHistoryPatient({id:patientId,name:patientName,history:patientHistory});setPhase("historyList");}} style={{background:"#e8e0d5",border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#555"}}>📋 測定履歴</button>
+            </div>
+            <button onClick={handlePrint} style={{background:"#2d6a4f",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#fff"}}>🖨️ 印刷 / PDF保存</button>
           </div>
           <div id="print-container">
-          <div style={{borderBottom:"2px solid #39e0b0",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+          <div style={{borderBottom:"3px solid #2d6a4f",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
-              <div style={{fontSize:10,color:"#666",letterSpacing:2,marginBottom:4}}>VIDEO GAIT ANALYSIS REPORT</div>
-              <div style={{fontSize:22,fontWeight:900}}>{patientName} 様</div>
+              <div style={{fontSize:10,color:"#888",letterSpacing:2,marginBottom:4}}>VIDEO GAIT ANALYSIS REPORT</div>
+              <div style={{fontSize:24,fontWeight:900,color:"#2c2c2c"}}>{patientName} 様</div>
             </div>
-            <div style={{textAlign:"right",fontSize:11,color:"#666"}}>
+            <div style={{textAlign:"right",fontSize:11,color:"#888"}}>
               <div>{formatDate(patientHistory[0]?.date)}</div>
               <div>{patientHistory.length}回目の測定</div>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:20,padding:"16px",background:"#f8f8f8",borderRadius:12}}>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontSize:48,fontWeight:900,color:result.score>=75?"#16a34a":result.score>=50?"#d97706":"#dc2626",fontFamily:"monospace"}}>{result.score}</div>
-              <div style={{fontSize:10,color:"#666",letterSpacing:2}}>GAIT SCORE</div>
+          <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:20,padding:"20px",background:"#fff",borderRadius:14,border:`2px solid ${sc}`,boxShadow:"0 2px 8px rgba(0,0,0,0.08)"}}>
+            <div style={{textAlign:"center",minWidth:80}}>
+              <div style={{fontSize:56,fontWeight:900,color:sc,fontFamily:"monospace",lineHeight:1}}>{result.score}</div>
+              <div style={{fontSize:10,color:"#888",letterSpacing:2}}>GAIT SCORE</div>
             </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{result.summary}</div>
-              {result.progress&&<div style={{fontSize:12,color:"#444",padding:"8px 12px",background:"#e8f4fd",borderRadius:8,borderLeft:"3px solid #3b82f6"}}>{result.progress}</div>}
+            <div style={{flex:1,borderLeft:`3px solid ${sc}`,paddingLeft:16}}>
+              <div style={{fontSize:16,fontWeight:700,marginBottom:6,color:"#2c2c2c"}}>{result.summary}</div>
+              {result.progress&&<div style={{fontSize:12,color:"#444",padding:"8px 12px",background:"#eaf4fb",borderRadius:8,borderLeft:"3px solid #3b82f6"}}>{result.progress}</div>}
             </div>
           </div>
           {result.aids&&result.aids.detected&&result.aids.detected.length>0&&(
-            <div style={{marginBottom:16,padding:"12px 16px",background:"#f0f9ff",borderRadius:10,border:"1px solid #bae6fd"}}>
-              <div style={{fontSize:11,color:"#666",letterSpacing:2,marginBottom:8}}>補助具・手すり</div>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>{result.aids.detected.join("、")}</div>
+            <div style={{marginBottom:16,padding:"14px 16px",background:"#e8f4fd",borderRadius:12,border:"1px solid #93c5fd"}}>
+              <div style={{fontSize:11,color:"#1d4ed8",letterSpacing:2,marginBottom:8,fontWeight:700}}>🦯 補助具・手すり</div>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#1e3a5f"}}>{result.aids.detected.join("、")}</div>
               {result.aids.usage&&<div style={{fontSize:12,color:"#444",marginBottom:4}}>使い方：{result.aids.usage}</div>}
               {result.aids.recommendation&&<div style={{fontSize:12,color:"#444"}}>アドバイス：{result.aids.recommendation}</div>}
             </div>
           )}
           {result.gait&&(
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,color:"#666",letterSpacing:2,marginBottom:10,borderBottom:"1px solid #eee",paddingBottom:6}}>歩行指標</div>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <div style={{marginBottom:16,background:"#fff",borderRadius:12,padding:"16px",border:"1px solid #d9cfc4"}}>
+              <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:12,fontWeight:700}}>📊 歩行指標</div>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
                 <tbody>
                   {[["歩行リズム",result.gait.cadence],["歩幅",result.gait.stride],["体幹・姿勢",result.gait.posture],["腕振り",result.gait.armSwing],["足のクリアランス",result.gait.footClearance]].map(([label,val])=>(
-                    <tr key={label} style={{borderBottom:"1px solid #f0f0f0"}}>
-                      <td style={{padding:"6px 8px",color:"#666",width:120}}>{label}</td>
-                      <td style={{padding:"6px 8px",fontWeight:600}}>{val}</td>
+                    <tr key={label} style={{borderBottom:"1px solid #f0ebe4"}}>
+                      <td style={{padding:"8px",color:"#666",width:130,fontWeight:600}}>{label}</td>
+                      <td style={{padding:"8px",color:"#2c2c2c"}}>{val}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -734,38 +738,38 @@ export default function WalkingVideoAnalyzer() {
           )}
           {result.issues&&result.issues.length>0&&(
             <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,color:"#666",letterSpacing:2,marginBottom:10,borderBottom:"1px solid #eee",paddingBottom:6}}>課題</div>
+              <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:10,fontWeight:700}}>⚠️ 課題</div>
               {result.issues.map((issue,i)=>(
-                <div key={i} style={{marginBottom:8,padding:"8px 12px",background:"#fafafa",borderRadius:8,borderLeft:`3px solid ${issue.severity==="high"?"#dc2626":issue.severity==="medium"?"#d97706":"#16a34a"}`}}>
-                  <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{issue.title}</div>
-                  <div style={{fontSize:12,color:"#444"}}>{issue.detail}</div>
+                <div key={i} style={{marginBottom:8,padding:"10px 14px",background:"#fff",borderRadius:10,borderLeft:`4px solid ${issue.severity==="high"?"#dc2626":issue.severity==="medium"?"#d97706":"#16a34a"}`,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                  <div style={{fontSize:14,fontWeight:700,marginBottom:4,color:"#2c2c2c"}}>{issue.title}</div>
+                  <div style={{fontSize:12,color:"#555",lineHeight:1.6}}>{issue.detail}</div>
                 </div>
               ))}
             </div>
           )}
           {result.exercises&&result.exercises.length>0&&(
             <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,color:"#666",letterSpacing:2,marginBottom:10,borderBottom:"1px solid #eee",paddingBottom:6}}>体操メニュー</div>
+              <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:10,fontWeight:700}}>🏃 体操メニュー</div>
               {result.exercises.map((ex,i)=>(
-                <div key={i} style={{marginBottom:10,padding:"10px 12px",background:"#fafafa",borderRadius:8}}>
-                  <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{ex.name} <span style={{fontSize:11,color:"#666",fontWeight:400}}>（{ex.target} / {ex.duration}）</span></div>
-                  {ex.steps.map((s,j)=><div key={j} style={{fontSize:12,color:"#444",marginLeft:12,marginBottom:2}}>{j+1}. {s}</div>)}
-                  <div style={{fontSize:12,color:"#16a34a",marginTop:4}}>効果：{ex.effect}</div>
+                <div key={i} style={{marginBottom:10,padding:"12px 14px",background:"#f0faf4",borderRadius:10,border:"1px solid #a7f3d0"}}>
+                  <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#065f46"}}>{ex.name} <span style={{fontSize:11,color:"#888",fontWeight:400}}>（{ex.target} / {ex.duration}）</span></div>
+                  {ex.steps.map((s,j)=><div key={j} style={{fontSize:12,color:"#444",marginLeft:12,marginBottom:3}}>{j+1}. {s}</div>)}
+                  <div style={{fontSize:12,color:"#065f46",marginTop:6,fontWeight:600}}>✓ 効果：{ex.effect}</div>
                 </div>
               ))}
             </div>
           )}
           {result.lifestyle&&result.lifestyle.length>0&&(
             <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,color:"#666",letterSpacing:2,marginBottom:10,borderBottom:"1px solid #eee",paddingBottom:6}}>生活アドバイス</div>
+              <div style={{fontSize:11,color:"#888",letterSpacing:2,marginBottom:10,fontWeight:700}}>💡 生活アドバイス</div>
               {result.lifestyle.map((tip,i)=>(
-                <div key={i} style={{fontSize:12,color:"#444",marginBottom:6,padding:"6px 12px",background:"#fafafa",borderRadius:6}}>
+                <div key={i} style={{fontSize:13,color:"#444",marginBottom:8,padding:"8px 14px",background:"#fffbeb",borderRadius:8,border:"1px solid #fde68a",lineHeight:1.6}}>
                   {i+1}. {tip}
                 </div>
               ))}
             </div>
           )}
-          <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #eee",fontSize:10,color:"#999",textAlign:"center"}}>
+          <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #d9cfc4",fontSize:10,color:"#aaa",textAlign:"center"}}>
             本レポートはAI歩行解析の参考情報です。医療診断の代替ではありません。
           </div>
           </div>{/* end print-container */}
