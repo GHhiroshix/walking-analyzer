@@ -333,10 +333,10 @@ export default function WalkingVideoAnalyzer() {
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.b64}},
         ]));
         imageContent.push({type:"text",text:buildPrompt(extracted.length, patientHistory)});
-        const resp = await fetch("/api/analyze", {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:16000,messages:[{role:"user",content:imageContent}]}),
+          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
@@ -662,14 +662,21 @@ export default function WalkingVideoAnalyzer() {
 
   // ── PRINT ────────────────────────────────────────────────────────────────
   if (phase==="print"&&result) {
+    const handlePrint = () => {
+      const style = document.createElement('style');
+      style.innerHTML = `@media print{body *{visibility:hidden;}#print-container,#print-container *{visibility:visible;}#print-container{position:absolute;left:0;top:0;width:100%;background:white;}}`;
+      document.head.appendChild(style);
+      window.print();
+      document.head.removeChild(style);
+    };
     return (
       <div style={{minHeight:"100vh",background:"#fff",fontFamily:"'Kosugi Maru',sans-serif",color:"#111",padding:"20px"}}>
-        <style>{`@media print{.no-print{display:none!important;}body{margin:0;padding:0;}}`}</style>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8}}>
             <button onClick={()=>setPhase("result")} style={{background:"none",border:"1px solid #ccc",borderRadius:8,padding:"6px 14px",fontSize:13,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif"}}>← 戻る</button>
-            <button onClick={()=>{setTimeout(()=>window.print(),300);}} style={{background:"#39e0b0",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#07080a"}}>🖨️ 印刷 / PDF保存</button>
+            <button onClick={handlePrint} style={{background:"#39e0b0",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#07080a"}}>🖨️ 印刷 / PDF保存</button>
           </div>
+          <div id="print-container">
           <div style={{borderBottom:"2px solid #39e0b0",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
               <div style={{fontSize:10,color:"#666",letterSpacing:2,marginBottom:4}}>VIDEO GAIT ANALYSIS REPORT</div>
@@ -749,6 +756,7 @@ export default function WalkingVideoAnalyzer() {
           <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #eee",fontSize:10,color:"#999",textAlign:"center"}}>
             本レポートはAI歩行解析の参考情報です。医療診断の代替ではありません。
           </div>
+          </div>{/* end print-container */}
         </div>
       </div>
     );
