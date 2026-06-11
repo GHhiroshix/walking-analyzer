@@ -51,10 +51,20 @@ async function deletePatientHistory(patientId) {
   if (error) { console.error(error); return false; }
   return true;
 }
+async function deleteSingleHistory(analysisId) {
+  const { error } = await supabase.from("gait_analyses").delete().eq("id", analysisId);
+  if (error) { console.error(error); return false; }
+  return true;
+}
 
 function toBase64(canvas) { return canvas.toDataURL("image/jpeg", 0.75).split(",")[1]; }
 function formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,"0")}:${Math.floor(s%60).toString().padStart(2,"0")}`; }
 function formatDate(iso) { const d = new Date(iso); return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; }
+// ベビーカー→歩行器 強制置換
+function fixTerms(text) {
+  if (!text) return text;
+  return text.replace(/ベビーカー/g, "歩行器");
+}
 function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label: `+${d}`, color: C.accent }; if (d < 0) return { label: `${d}`, color: C.red }; return { label: "±0", color: C.muted }; }
 
 // 印刷用スコアカラー
@@ -616,17 +626,30 @@ export default function WalkingVideoAnalyzer() {
             {hist.map((h,i)=>{
               const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
               return (
-                <div key={i} onClick={()=>setHistoryDetail(h)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
+                  <div onClick={()=>setHistoryDetail(h)} style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
                     <div style={{width:52,height:52,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <span style={{fontSize:20,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{h.score}</span>
                       <span style={{fontSize:8,color:C.muted,letterSpacing:1}}>SCORE</span>
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:2}}>{h.summary}</div>
+                      <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:2}}>{fixTerms(h.summary)}</div>
                       <div style={{fontSize:11,color:C.muted}}>{formatDate(h.date)}{i===0&&<span style={{marginLeft:6,background:C.accent+"22",color:C.accent,borderRadius:100,padding:"1px 8px",fontSize:10,fontWeight:700}}>最新</span>}</div>
                     </div>
                     <div style={{color:C.muted,fontSize:16}}>›</div>
+                  </div>
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                    <button
+                      onClick={async()=>{
+                        if(!window.confirm(`${formatDate(h.date)}の解析結果を削除しますか？`)) return;
+                        await deleteSingleHistory(h.id);
+                        const newHist = await getPatientHistory(historyPatient.id);
+                        const updated = {...historyPatient, history: newHist};
+                        setHistoryPatient(updated);
+                        if(session) await loadPatients(session.user.id);
+                      }}
+                      style={{width:"100%",padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}
+                    >🗑️ この解析結果を削除</button>
                   </div>
                 </div>
               );
