@@ -526,7 +526,7 @@ export default function WalkingVideoAnalyzer() {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
+            <button onClick={()=>setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setVideoUrl(null);setPhase("upload"); style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
           </div>
         </div>
         {hist.length===0?(
