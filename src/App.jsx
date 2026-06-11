@@ -239,7 +239,9 @@ export default function WalkingVideoAnalyzer() {
       if (s) { setPhase("consent"); loadPatients(s.user.id); }
       else { setPhase("login"); }
     });
-   
+    const style = document.createElement("style");
+    style.innerHTML = `@media print { body > div { display: none !important; } #print-report { display: block !important; position: fixed; top: 0; left: 0; width: 100%; background: white; z-index: 99999; padding: 20px; } }`;
+    document.head.appendChild(style);
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
@@ -295,7 +297,7 @@ export default function WalkingVideoAnalyzer() {
       try {
         vid.src = videoUrl;
         await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("メタデータ読み込みタイムアウト")), 16000);
+          const timer = setTimeout(() => rej(new Error("メタデータ読み込みタイムアウト")), 15000);
           vid.onloadedmetadata = () => { clearTimeout(timer); res(); };
           vid.onerror = () => { clearTimeout(timer); rej(new Error(`動画の読み込みエラー: ${vid.error?.message||"不明"}`)); };
           vid.load();
@@ -309,7 +311,7 @@ export default function WalkingVideoAnalyzer() {
         const ctx = canvas.getContext("2d");
         const vw = vid.videoWidth||640, vh = vid.videoHeight||480;
         const w = Math.min(vw,512), fh = Math.round(w*(vh/vw));
-        const maxW=800; const scale=w>maxW?maxW/w:1; canvas.width=Math.round(w*scale); canvas.height=Math.round(fh*scale);
+        canvas.width=w; canvas.height=fh;
         for (let i=0; i<FRAME_COUNT; i++) {
           const t = (i/(FRAME_COUNT-1))*duration*0.85+duration*0.05;
           await new Promise(res => {
@@ -318,7 +320,7 @@ export default function WalkingVideoAnalyzer() {
             vid.currentTime = t;
           });
           await new Promise(r => setTimeout(r, 150));
-          ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(vid, 0, 0, w, fh);
           extracted.push({ time:t, b64:toBase64(canvas), w, h:fh });
           setProgress(Math.round(((i+1)/FRAME_COUNT)*40));
         }
@@ -331,10 +333,10 @@ export default function WalkingVideoAnalyzer() {
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.b64}},
         ]));
         imageContent.push({type:"text",text:buildPrompt(extracted.length, patientHistory)});
-        const resp = await fetch("/api/analyze", {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:16000,messages:[{role:"user",content:imageContent}]}),
+          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1500,messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);
         const data = await resp.json();
@@ -524,7 +526,7 @@ export default function WalkingVideoAnalyzer() {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-            <button onClick={()=>setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setVideoUrl(null);setPhase("upload"); style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
           </div>
         </div>
         {hist.length===0?(
@@ -662,10 +664,11 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="print"&&result) {
     return (
       <div style={{minHeight:"100vh",background:"#fff",fontFamily:"'Kosugi Maru',sans-serif",color:"#111",padding:"20px"}}>
+        <style>{`@media print{.no-print{display:none!important;}body{margin:0;padding:0;}}`}</style>
         <div style={{maxWidth:700,margin:"0 auto"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8}}>
+          <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8}}>
             <button onClick={()=>setPhase("result")} style={{background:"none",border:"1px solid #ccc",borderRadius:8,padding:"6px 14px",fontSize:13,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif"}}>← 戻る</button>
-            <button onClick={()=>window.print()} style={{background:"#39e0b0",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#07080a"}}>🖨️ 印刷 / PDF保存</button>
+            <button onClick={()=>{setTimeout(()=>window.print(),300);}} style={{background:"#39e0b0",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Kosugi Maru',sans-serif",color:"#07080a"}}>🖨️ 印刷 / PDF保存</button>
           </div>
           <div style={{borderBottom:"2px solid #39e0b0",paddingBottom:12,marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
