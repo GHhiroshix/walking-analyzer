@@ -239,9 +239,7 @@ export default function WalkingVideoAnalyzer() {
       if (s) { setPhase("consent"); loadPatients(s.user.id); }
       else { setPhase("login"); }
     });
-    const style = document.createElement("style");
-    style.innerHTML = `@media print { body > div { display: none !important; } #print-report { display: block !important; position: fixed; top: 0; left: 0; width: 100%; background: white; z-index: 99999; padding: 20px; } }`;
-    document.head.appendChild(style);
+   
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
