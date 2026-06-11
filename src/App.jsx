@@ -597,7 +597,8 @@ export default function WalkingVideoAnalyzer() {
         {h.issues&&h.issues.length>0&&(<div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>課題</div><div style={{display:"flex",flexDirection:"column",gap:8}}>{h.issues.map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14,color:C.text}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div></div>)}
         {h.exercises&&h.exercises.length>0&&(<div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>体操メニュー</div>{h.exercises.map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         <div style={{display:"flex",gap:10,marginTop:4}}>
-          <button onClick={handleHistoryPrint} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>🖨️ 印刷 / PDF保存</button>
+          <button onClick={()=>setHistoryDetail(null)} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.mutedLight,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>← 履歴一覧</button>
+          <button onClick={handleHistoryPrint} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>🖨️ 印刷</button>
           <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
         </div>
       </div></div>
@@ -648,7 +649,7 @@ export default function WalkingVideoAnalyzer() {
                         setHistoryPatient(updated);
                         if(session) await loadPatients(session.user.id);
                       }}
-                      style={{width:"100%",padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}
+                      style={{padding:"5px 10px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:6,color:C.red,fontSize:10,cursor:"pointer",fontFamily:C.font}}
                     >🗑️ この解析結果を削除</button>
                   </div>
                 </div>
