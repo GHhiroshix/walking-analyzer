@@ -662,11 +662,8 @@ export default function WalkingVideoAnalyzer() {
             if(result.exercises&&result.exercises.length>0){html+=`<div style="margin-bottom:16px;"><div style="font-size:11px;color:#666;letter-spacing:2px;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:10px;">体操メニュー</div>${result.exercises.map(ex=>`<div style="margin-bottom:10px;padding:10px;background:#fafafa;"><div style="font-weight:700;">${ex.name} <span style="font-size:11px;color:#666;">(${ex.target} / ${ex.duration})</span></div>${ex.steps.map((s,j)=>`<div style="font-size:12px;color:#444;margin-left:12px;">${j+1}. ${s}</div>`).join("")}<div style="font-size:12px;color:#16a34a;margin-top:4px;">効果：${ex.effect}</div></div>`).join("")}</div>`;}
             if(result.lifestyle&&result.lifestyle.length>0){html+=`<div style="margin-bottom:16px;"><div style="font-size:11px;color:#666;letter-spacing:2px;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:10px;">生活アドバイス</div>${result.lifestyle.map((t,i)=>`<div style="font-size:12px;color:#444;padding:6px 12px;background:#fafafa;margin-bottom:6px;">${i+1}. ${t}</div>`).join("")}</div>`;}
             html+=`<div style="margin-top:20px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center;">本レポートはAI歩行解析の参考情報です。医療診断の代替ではありません。</div></body></html>`;
-            const blob=new Blob([html],{type:"text/html;charset=utf-8"});
-            const url=URL.createObjectURL(blob);
-            const win=window.open(url,"_blank");
-            if(win){win.addEventListener("load",()=>{win.print();});}
-            setTimeout(()=>URL.revokeObjectURL(url),10000);
+            const win=window.open("","_blank");
+            if(win){win.document.open();win.document.write(html);win.document.close();setTimeout(()=>win.print(),1500);}
           }} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>🖨️ 印刷 / PDF保存</button>
         </div>
         <button onClick={restart} style={{width:"100%",marginTop:10,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:C.font}}>別の動画で再解析</button>
