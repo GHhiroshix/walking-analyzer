@@ -141,7 +141,14 @@ function ScoreHistoryChart({ history }) {
 function GaitMetricsHistoryChart({ history }) {
   if (!history || history.length < 2) return null;
   const items = [...history].reverse().slice(-8);
-  const getScore = (v) => v==="良好"||v==="正常"||v==="自然"?85:v?.includes("やや")?60:v?.includes("不規則")||v?.includes("小さい")||v?.includes("少ない")?40:65;
+  const getScore = (v) => {
+    if (!v) return 65;
+    if (v==="良好"||v==="正常"||v==="自然") return 85;
+    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
+    if (v.includes("やや")||v.includes("少し")) return 60;
+    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    return 65;
+  };
   const metrics = [
     { key:"cadence", label:"歩行リズム", color:"#39e0b0" },
     { key:"stride",  label:"歩幅",       color:"#4da6ff" },
@@ -218,7 +225,14 @@ function GaitRadarChart({ gait }) {
     { label:"腕振り", value:gait.armSwing, color:"#c084fc" },
     { label:"足のクリアランス", value:gait.footClearance, color:C.accent },
   ];
-  const getScore = (v) => v==="良好"||v==="正常"||v==="自然"?85:v?.includes("やや")?60:v?.includes("不規則")||v?.includes("小さい")||v?.includes("少ない")?40:65;
+  const getScore = (v) => {
+    if (!v) return 65;
+    if (v==="良好"||v==="正常"||v==="自然") return 85;
+    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
+    if (v.includes("やや")||v.includes("少し")) return 60;
+    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    return 65;
+  };
   const n = metrics.length;
   const toXY = (i, r) => { const a = (Math.PI*2*i/n)-Math.PI/2; return { x: cx+r*Math.cos(a), y: cy+r*Math.sin(a) }; };
   const labelOffset = (i) => { const a = (Math.PI*2*i/n)-Math.PI/2; return { x: cx+(maxR+22)*Math.cos(a), y: cy+(maxR+22)*Math.sin(a) }; };
