@@ -428,7 +428,17 @@ export default function WalkingVideoAnalyzer() {
           const t = (i/(FRAME_COUNT-1))*duration*0.85+duration*0.05;
           await new Promise(res => { const timer=setTimeout(res,3000); vid.onseeked=()=>{clearTimeout(timer);vid.onseeked=null;res();}; vid.currentTime=t; });
           await new Promise(r=>setTimeout(r,150));
-          ctx.drawImage(vid,0,0,w,fh);
+          if (tapTargetX !== null) {
+            const cropW = Math.round(vw * 0.4);
+            const cropX = Math.max(0, Math.min(vw - cropW, Math.round(vw * tapTargetX - cropW / 2)));
+            const trimW = Math.min(512, cropW);
+            const trimH = Math.round(trimW * (vh / cropW));
+            canvas.width = trimW;
+            canvas.height = trimH;
+            ctx.drawImage(vid, cropX, 0, cropW, vh, 0, 0, trimW, trimH);
+          } else {
+            ctx.drawImage(vid, 0, 0, w, fh);
+          }
           extracted.push({time:t,b64:toBase64(canvas),w,h:fh});
           setProgress(Math.round(((i+1)/FRAME_COUNT)*40));
         }
