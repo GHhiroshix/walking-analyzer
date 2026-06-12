@@ -340,6 +340,8 @@ export default function WalkingVideoAnalyzer() {
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [isQuick, setIsQuick] = useState(false);
+  const [tapTargetX, setTapTargetX] = useState(null); // タップされたX座標（比率0-1）
+  const [showTapGuide, setShowTapGuide] = useState(false); // タップガイド表示
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [historyPatient, setHistoryPatient] = useState(null);
   const [historyDetail, setHistoryDetail] = useState(null);
@@ -807,7 +809,35 @@ export default function WalkingVideoAnalyzer() {
           </div>
         ):(
           <div>
+            <div style={{position:"relative",width:"100%"}}>
             <video ref={videoRef} src={videoUrl} controls playsInline style={{width:"100%",borderRadius:12,background:"#000",maxHeight:320,border:`1px solid ${C.border}`}}/>
+            {showTapGuide&&(
+              <div
+                onClick={e=>{
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = (e.clientX - rect.left) / rect.width;
+                  setTapTargetX(x);
+                }}
+                style={{position:"absolute",inset:0,borderRadius:12,cursor:"crosshair",background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}
+              >
+                {tapTargetX===null?(
+                  <div style={{textAlign:"center",pointerEvents:"none"}}>
+                    <div style={{fontSize:36,marginBottom:8}}>👆</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>被解析者をタップしてください</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>タップした人物を中心に解析します</div>
+                  </div>
+                ):(
+                  <>
+                    <div style={{position:"absolute",top:0,bottom:0,left:`${Math.max(0,(tapTargetX-0.2)*100)}%`,width:"40%",border:`3px solid ${C.accent}`,borderRadius:8,background:`${C.accent}15`,pointerEvents:"none"}}/>
+                    <div style={{position:"absolute",top:"50%",left:`${tapTargetX*100}%`,transform:"translate(-50%,-50%)",width:40,height:40,borderRadius:"50%",border:`3px solid ${C.accent}`,background:`${C.accent}33`,pointerEvents:"none",boxShadow:`0 0 20px ${C.accent}`}}/>
+                    <div style={{position:"absolute",bottom:12,left:0,right:0,textAlign:"center",pointerEvents:"none"}}>
+                      <div style={{fontSize:12,color:"#fff",background:"rgba(0,0,0,0.6)",borderRadius:8,padding:"4px 12px",display:"inline-block"}}>✅ タップ位置を確認してください。ずれていたら再タップできます</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
             <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
               <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10,fontWeight:700}}>解析前チェック</div>
               {[["スマホを固定して撮影した（横に動かして追いかけていない）",true],["真横から全身が映っている",true],["明るさは十分で影が少ない",false]].map(([label,imp])=>(
@@ -818,8 +848,14 @@ export default function WalkingVideoAnalyzer() {
               ))}
             </div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
-              <button onClick={startAnalysis} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>解析を開始 →</button>
+              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
+              {!showTapGuide?(
+                <button onClick={()=>setShowTapGuide(true)} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>👆 被解析者を選択 →</button>
+              ):(
+                <button onClick={startAnalysis} disabled={tapTargetX===null} style={{flex:2,padding:"11px",background:tapTargetX!==null?`linear-gradient(135deg,${C.accent},${C.accentDim})`:"rgba(255,255,255,0.1)",border:"none",borderRadius:10,color:tapTargetX!==null?C.bgSolid:C.muted,fontSize:14,fontWeight:700,cursor:tapTargetX!==null?"pointer":"not-allowed",fontFamily:C.font,boxShadow:tapTargetX!==null?`0 4px 20px ${C.accent}33`:"none"}}>
+                  {tapTargetX===null?"被解析者をタップしてください":"解析を開始 →"}
+                </button>
+              )}
             </div>
           </div>
         )}
