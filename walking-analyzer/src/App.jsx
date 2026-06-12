@@ -339,6 +339,7 @@ export default function WalkingVideoAnalyzer() {
   const [activeTab, setActiveTab] = useState("gait");
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [isQuick, setIsQuick] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [historyPatient, setHistoryPatient] = useState(null);
   const [historyDetail, setHistoryDetail] = useState(null);
@@ -750,6 +751,11 @@ export default function WalkingVideoAnalyzer() {
         )}
 
         {/* 新規登録 */}
+        <div style={{background:C.amber+"12",border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"16px",marginBottom:16}}>
+          <div style={{fontSize:11,color:C.amber,letterSpacing:2,marginBottom:12,fontWeight:700}}>⚡ クイック解析（匿名・履歴なし）</div>
+          <div style={{fontSize:12,color:C.mutedLight,marginBottom:12,lineHeight:1.7}}>利用者登録不要で1回だけ解析できます。結果はDBに保存されません。</div>
+          <button onClick={()=>{setIsQuick(true);setPatientId(null);setPatientName("匿名");setPatientHistory([]);setPhase("upload");}} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${C.amber},#e8821a)`,border:"none",borderRadius:8,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>⚡ クイック解析を開始</button>
+        </div>
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
