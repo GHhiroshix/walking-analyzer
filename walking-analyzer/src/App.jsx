@@ -137,6 +137,71 @@ function ScoreHistoryChart({ history }) {
   return (<div style={{marginTop:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>スコア推移</div><svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/><stop offset="100%" stopColor={C.accent} stopOpacity="0"/></linearGradient></defs><path d={areaD} fill="url(#g)"/><path d={pathD} fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>{pts.map((p,i)=>(<g key={i}><circle cx={p.x} cy={p.y} r={4} fill={C.accent} stroke={C.bgSolid} strokeWidth={2}/><text x={p.x} y={p.y-8} textAnchor="middle" fontSize="10" fill={C.accent} fontFamily="monospace">{p.score}</text>{i===0&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>最古</text>}{i===pts.length-1&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>今回</text>}</g>))}</svg></div>);
 }
 
+
+function GaitMetricsHistoryChart({ history }) {
+  if (!history || history.length < 2) return null;
+  const items = [...history].reverse().slice(-8);
+  const getScore = (v) => v==="良好"||v==="正常"||v==="自然"?85:v?.includes("やや")?60:v?.includes("不規則")||v?.includes("小さい")||v?.includes("少ない")?40:65;
+  const metrics = [
+    { key:"cadence", label:"歩行リズム", color:"#39e0b0" },
+    { key:"stride",  label:"歩幅",       color:"#4da6ff" },
+    { key:"posture", label:"体幹・姿勢", color:"#f5a623" },
+    { key:"armSwing",label:"腕振り",     color:"#c084fc" },
+    { key:"footClearance",label:"足の上がり",color:"#39e0b0" },
+  ];
+  const cW=280, cH=100, pad=20;
+  const validItems = items.filter(h => h.gait);
+  if (validItems.length < 2) return null;
+
+  return (
+    <div style={{marginTop:16}}>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
+      <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}>
+        <defs>
+          {metrics.map((m,i) => (
+            <linearGradient key={i} id={`mg${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={m.color} stopOpacity="0.15"/>
+              <stop offset="100%" stopColor={m.color} stopOpacity="0"/>
+            </linearGradient>
+          ))}
+        </defs>
+        {/* グリッド線 */}
+        {[40,60,80].map(v => {
+          const y = cH-pad-((v-20)/(100-20))*(cH-pad*2);
+          return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
+        })}
+        {metrics.map((m, mi) => {
+          const pts = validItems.map((h,i) => ({
+            x: pad+(i/(validItems.length-1))*(cW-pad*2),
+            y: cH-pad-((getScore(h.gait[m.key])-20)/(100-20))*(cH-pad*2),
+            score: getScore(h.gait[m.key])
+          }));
+          const pathD = pts.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
+          return (
+            <g key={mi}>
+              <path d={pathD} fill="none" stroke={m.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.8"/>
+              {pts.map((p,i) => (
+                <circle key={i} cx={p.x} cy={p.y} r={3} fill={m.color} stroke="rgba(10,15,30,1)" strokeWidth={1.5}/>
+              ))}
+            </g>
+          );
+        })}
+        <text x={pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">最古</text>
+        <text x={cW-pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">今回</text>
+      </svg>
+      {/* 凡例 */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
+        {metrics.map((m,i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:16,height:3,borderRadius:2,background:m.color}}/>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ComparePanel({ current, prev }) {
   if (!prev) return null;
   const diff = scoreDiff(current.score, prev.score);
@@ -930,6 +995,7 @@ export default function WalkingVideoAnalyzer() {
           <ScoreArc score={result.score}/>
           <div style={{fontWeight:900,fontSize:17,marginTop:4,textAlign:"center"}}>{result.summary}</div>
           {patientHistory.length>1&&<ScoreHistoryChart history={patientHistory}/>}
+        {patientHistory.length>1&&<GaitMetricsHistoryChart history={patientHistory}/>}
         </div>
         {frames.length>0&&(<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}}>解析フレーム</div><FrameStrip frames={frames} current={currentFrame} onSelect={setCurrentFrame}/><img src={`data:image/jpeg;base64,${frames[currentFrame]?.b64}`} alt="selected" style={{width:"100%",borderRadius:8,marginTop:4,border:`1px solid ${C.border}`}}/></div>)}
         <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>
