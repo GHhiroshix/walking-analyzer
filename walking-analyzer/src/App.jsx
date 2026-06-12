@@ -347,6 +347,7 @@ export default function WalkingVideoAnalyzer() {
   const [historyDetail, setHistoryDetail] = useState(null);
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
+  const tapTargetXRef = useRef(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setPhase("login"), 3000);
@@ -428,9 +429,10 @@ export default function WalkingVideoAnalyzer() {
           const t = (i/(FRAME_COUNT-1))*duration*0.85+duration*0.05;
           await new Promise(res => { const timer=setTimeout(res,3000); vid.onseeked=()=>{clearTimeout(timer);vid.onseeked=null;res();}; vid.currentTime=t; });
           await new Promise(r=>setTimeout(r,150));
-          if (tapTargetX !== null) {
+          const tapX = tapTargetXRef.current;
+          if (tapX !== null) {
             const cropW = Math.round(vw * 0.4);
-            const cropX = Math.max(0, Math.min(vw - cropW, Math.round(vw * tapTargetX - cropW / 2)));
+            const cropX = Math.max(0, Math.min(vw - cropW, Math.round(vw * tapX - cropW / 2)));
             const trimW = Math.min(512, cropW);
             const trimH = Math.round(trimW * (vh / cropW));
             canvas.width = trimW;
@@ -826,7 +828,7 @@ export default function WalkingVideoAnalyzer() {
                 onClick={e=>{
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = (e.clientX - rect.left) / rect.width;
-                  setTapTargetX(x);
+                  setTapTargetX(x); tapTargetXRef.current = x;
                 }}
                 style={{position:"absolute",inset:0,borderRadius:12,cursor:"crosshair",background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}
               >
