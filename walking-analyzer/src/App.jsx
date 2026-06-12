@@ -449,11 +449,12 @@ export default function WalkingVideoAnalyzer() {
         const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
-        const record = { date:new Date().toISOString(), score:parsed.score, summary:parsed.summary, issues:parsed.issues, exercises:parsed.exercises };
-        await saveAnalysis(patientId, session.user.id, record, parsed);
+        const parsedFixed = { ...parsed, summary: fixTerms(parsed.summary), progress: fixTerms(parsed.progress), aids: parsed.aids ? { ...parsed.aids, detected: (parsed.aids.detected||[]).map(fixTerms), usage: fixTerms(parsed.aids.usage), recommendation: fixTerms(parsed.aids.recommendation) } : parsed.aids, gait: parsed.gait ? Object.fromEntries(Object.entries(parsed.gait).map(([k,v])=>[k,fixTerms(v)])) : parsed.gait, issues: (parsed.issues||[]).map(iss=>({...iss, title:fixTerms(iss.title), detail:fixTerms(iss.detail)})), exercises: (parsed.exercises||[]).map(ex=>({...ex, name:fixTerms(ex.name), target:fixTerms(ex.target), effect:fixTerms(ex.effect), steps:(ex.steps||[]).map(fixTerms)})), lifestyle: (parsed.lifestyle||[]).map(fixTerms) };
+        const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
+        await saveAnalysis(patientId, session.user.id, record, parsedFixed);
         const newHistory = await getPatientHistory(patientId);
         setPatientHistory(newHistory);
-        setResult(parsed);
+        setResult(parsedFixed);
         setActiveTab(newHistory.length>1?"compare":"gait");
         setPhase("result");
       } finally { vid.src=""; document.body.removeChild(vid); }
