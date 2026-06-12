@@ -151,7 +151,7 @@ function GaitMetricsHistoryChart({ history }) {
   ];
   const cW=280, cH=100, pad=20;
   const validItems = items.filter(h => h.gait);
-  if (validItems.length < 2) return null;
+  if (validItems.length < 1) return null;
 
   return (
     <div style={{marginTop:16}}>
