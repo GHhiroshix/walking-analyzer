@@ -63,7 +63,7 @@ function formatDate(iso) { const d = new Date(iso); return `${d.getFullYear()}/$
 // ベビーカー→歩行器 強制置換
 function fixTerms(text) {
   if (!text) return text;
-  return text.replace(/ベビーカー/g, "歩行器");
+  return text.replace(/ベビーカー/g, "シルバーカー");
 }
 function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label: `+${d}`, color: C.accent }; if (d < 0) return { label: `${d}`, color: C.red }; return { label: "±0", color: C.muted }; }
 
