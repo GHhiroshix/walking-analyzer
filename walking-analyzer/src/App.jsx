@@ -554,7 +554,10 @@ export default function WalkingVideoAnalyzer() {
         // ③始点ルール（コード側で強制）
         const hasAids = parsed.aids && parsed.aids.detected && parsed.aids.detected.length > 0;
         const hasRhythm = parsed.gait && (parsed.gait.cadence||"").includes("安定") || (parsed.gait&&parsed.gait.cadence||"").includes("リズム") || (parsed.gait&&parsed.gait.cadence||"").includes("一定");
-        if (parsed.score < 60) parsed.score = 60; // 最低60点保証
+        // 補助具あり→最低60点、補助具なし→最低70点
+        const hasAidsCheck = parsed.aids && parsed.aids.detected && parsed.aids.detected.length > 0;
+        if (hasAidsCheck && parsed.score < 60) parsed.score = 60;
+        if (!hasAidsCheck && parsed.score < 70) parsed.score = 70;
         if (hasRhythm && parsed.score < 70) parsed.score = 70;
 
         // ①前回スコアから±10点制限
