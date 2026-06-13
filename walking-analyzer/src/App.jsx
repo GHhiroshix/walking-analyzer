@@ -92,6 +92,13 @@ const buildPrompt = (frameCount, history) => {
 - 映像内で本人が手で押しながら歩いている4輪または3輪の歩行補助具は、見た目がベビーカーに似ていても「歩行器」または「シルバーカー」として判定してください。付き添いの人が押している場合のみベビーカーと判定してください。
 ${historyBlock}
 
+【スコアの決まり — 必ず守ること】
+- scoreは0〜100の整数で返してください。
+- 補助具（杖・歩行器・シルバーカーなど）を使用しながらでも安全に歩けている場合は、最低60点以上にしてください。
+- 一定のリズムで継続して歩けている場合は、最低70点以上にしてください。
+- 補助具なしで安定して歩けている場合は、最低75点以上にしてください。
+- 転倒リスクが非常に高い・歩行が著しく不安定な場合のみ60点未満にしてください。
+
 【言葉づかいの決まり — 必ず守ること】
 - 専門用語・医療用語を使わず、高齢者・介護スタッフ・ご家族が読んでもすぐわかる言葉で書いてください。
 - 難しい言葉は以下のように言い換えてください：
@@ -544,6 +551,12 @@ export default function WalkingVideoAnalyzer() {
         const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
+        // ①前回スコアから±10点制限
+        const prevScore = patientHistory.length > 0 ? patientHistory[0].score : null;
+        if (prevScore !== null) {
+          if (parsed.score > prevScore + 10) parsed.score = prevScore + 10;
+          if (parsed.score < prevScore - 10) parsed.score = prevScore - 10;
+        }
         const parsedFixed = { ...parsed, summary: fixTerms(parsed.summary), progress: fixTerms(parsed.progress), aids: parsed.aids ? { ...parsed.aids, detected: (parsed.aids.detected||[]).map(fixTerms), usage: fixTerms(parsed.aids.usage), recommendation: fixTerms(parsed.aids.recommendation) } : parsed.aids, gait: parsed.gait ? Object.fromEntries(Object.entries(parsed.gait).map(([k,v])=>[k,fixTerms(v)])) : parsed.gait, issues: (parsed.issues||[]).map(iss=>({...iss, title:fixTerms(iss.title), detail:fixTerms(iss.detail)})), exercises: (parsed.exercises||[]).map(ex=>({...ex, name:fixTerms(ex.name), target:fixTerms(ex.target), effect:fixTerms(ex.effect), steps:(ex.steps||[]).map(fixTerms)})), lifestyle: (parsed.lifestyle||[]).map(fixTerms) };
         const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
         await saveAnalysis(patientId, session.user.id, record, parsedFixed);
