@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .env.local
+.DS_Store
+*.bak
+*.backup
+*_old.jsx

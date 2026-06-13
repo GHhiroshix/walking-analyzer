@@ -6,10 +6,10 @@ const C = {
   bgSolid: "#0a0f1e",
   surface: "rgba(255,255,255,0.06)",
   panel: "rgba(255,255,255,0.04)",
-  border: "rgba(255,255,255,0.12)",
+  border: "rgba(255,255,255,0.18)",
   accent: "#39e0b0", accentDim: "#1faa80", blue: "#4da6ff",
   amber: "#f5a623", red: "#ff4d6d", text: "#ddeeff",
-  muted: "rgba(255,255,255,0.35)", mutedLight: "rgba(255,255,255,0.5)",
+  muted: "rgba(255,255,255,0.56)", mutedLight: "rgba(255,255,255,0.74)",
   font: "'Kosugi Maru', sans-serif",
 };
 
@@ -63,7 +63,7 @@ function formatDate(iso) { const d = new Date(iso); return `${d.getFullYear()}/$
 // ベビーカー→歩行器 強制置換
 function fixTerms(text) {
   if (!text) return text;
-  return text.replace(/ベビーカー/g, "歩行器");
+  return text.replace(/ベビーカー/g, "シルバーカー");
 }
 function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label: `+${d}`, color: C.accent }; if (d < 0) return { label: `${d}`, color: C.red }; return { label: "±0", color: C.muted }; }
 
@@ -89,7 +89,15 @@ const buildPrompt = (frameCount, history) => {
 - 壁や廊下の手すりも検出してください。
 - 補助具・手すりの使い方が適切か（荷重・高さ・グリップ位置）も評価してください。
 - 体操提案は補助具の有無・種類に合わせた内容にしてください。
+- 映像内で本人が手で押しながら歩いている4輪または3輪の歩行補助具は、見た目がベビーカーに似ていても「歩行器」または「シルバーカー」として判定してください。付き添いの人が押している場合のみベビーカーと判定してください。
 ${historyBlock}
+
+【スコアの決まり — 必ず守ること】
+- scoreは0〜100の整数で返してください。
+- 補助具（杖・歩行器・シルバーカーなど）を使用しながらでも安全に歩けている場合は、最低60点以上にしてください。
+- 一定のリズムで継続して歩けている場合は、最低70点以上にしてください。
+- 補助具なしで安定して歩けている場合は、最低75点以上にしてください。
+- 転倒リスクが非常に高い・歩行が著しく不安定な場合のみ60点未満にしてください。
 
 【言葉づかいの決まり — 必ず守ること】
 - 専門用語・医療用語を使わず、高齢者・介護スタッフ・ご家族が読んでもすぐわかる言葉で書いてください。
@@ -136,6 +144,78 @@ function ScoreHistoryChart({ history }) {
   return (<div style={{marginTop:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>スコア推移</div><svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/><stop offset="100%" stopColor={C.accent} stopOpacity="0"/></linearGradient></defs><path d={areaD} fill="url(#g)"/><path d={pathD} fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>{pts.map((p,i)=>(<g key={i}><circle cx={p.x} cy={p.y} r={4} fill={C.accent} stroke={C.bgSolid} strokeWidth={2}/><text x={p.x} y={p.y-8} textAnchor="middle" fontSize="10" fill={C.accent} fontFamily="monospace">{p.score}</text>{i===0&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>最古</text>}{i===pts.length-1&&<text x={p.x} y={cH-4} textAnchor="middle" fontSize="8" fill={C.muted}>今回</text>}</g>))}</svg></div>);
 }
 
+
+function GaitMetricsHistoryChart({ history }) {
+  if (!history || history.length < 2) return null;
+  const items = [...history].reverse().slice(-8);
+  const getScore = (v) => {
+    if (!v) return 65;
+    if (v==="良好"||v==="正常"||v==="自然") return 85;
+    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
+    if (v.includes("やや")||v.includes("少し")) return 60;
+    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    return 65;
+  };
+  const metrics = [
+    { key:"cadence", label:"歩行リズム", color:"#39e0b0" },
+    { key:"stride",  label:"歩幅",       color:"#4da6ff" },
+    { key:"posture", label:"体幹・姿勢", color:"#f5a623" },
+    { key:"armSwing",label:"腕振り",     color:"#c084fc" },
+    { key:"footClearance",label:"足の上がり",color:"#39e0b0" },
+  ];
+  const cW=280, cH=100, pad=20;
+  const validItems = items.filter(h => h.gait);
+  if (validItems.length < 1) return null;
+
+  return (
+    <div style={{marginTop:16}}>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
+      <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}>
+        <defs>
+          {metrics.map((m,i) => (
+            <linearGradient key={i} id={`mg${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={m.color} stopOpacity="0.15"/>
+              <stop offset="100%" stopColor={m.color} stopOpacity="0"/>
+            </linearGradient>
+          ))}
+        </defs>
+        {/* グリッド線 */}
+        {[40,60,80].map(v => {
+          const y = cH-pad-((v-20)/(100-20))*(cH-pad*2);
+          return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
+        })}
+        {metrics.map((m, mi) => {
+          const pts = validItems.map((h,i) => ({
+            x: pad+(i/(validItems.length-1))*(cW-pad*2),
+            y: cH-pad-((getScore(h.gait[m.key])-20)/(100-20))*(cH-pad*2),
+            score: getScore(h.gait[m.key])
+          }));
+          const pathD = pts.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
+          return (
+            <g key={mi}>
+              <path d={pathD} fill="none" stroke={m.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.8"/>
+              {pts.map((p,i) => (
+                <circle key={i} cx={p.x} cy={p.y} r={3} fill={m.color} stroke="rgba(10,15,30,1)" strokeWidth={1.5}/>
+              ))}
+            </g>
+          );
+        })}
+        <text x={pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">最古</text>
+        <text x={cW-pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">今回</text>
+      </svg>
+      {/* 凡例 */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
+        {metrics.map((m,i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:16,height:3,borderRadius:2,background:m.color}}/>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ComparePanel({ current, prev }) {
   if (!prev) return null;
   const diff = scoreDiff(current.score, prev.score);
@@ -152,7 +232,14 @@ function GaitRadarChart({ gait }) {
     { label:"腕振り", value:gait.armSwing, color:"#c084fc" },
     { label:"足のクリアランス", value:gait.footClearance, color:C.accent },
   ];
-  const getScore = (v) => v==="良好"||v==="正常"||v==="自然"?85:v?.includes("やや")?60:v?.includes("不規則")||v?.includes("小さい")||v?.includes("少ない")?40:65;
+  const getScore = (v) => {
+    if (!v) return 65;
+    if (v==="良好"||v==="正常"||v==="自然") return 85;
+    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
+    if (v.includes("やや")||v.includes("少し")) return 60;
+    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    return 65;
+  };
   const n = metrics.length;
   const toXY = (i, r) => { const a = (Math.PI*2*i/n)-Math.PI/2; return { x: cx+r*Math.cos(a), y: cy+r*Math.sin(a) }; };
   const labelOffset = (i) => { const a = (Math.PI*2*i/n)-Math.PI/2; return { x: cx+(maxR+22)*Math.cos(a), y: cy+(maxR+22)*Math.sin(a) }; };
@@ -249,8 +336,8 @@ function buildPrintHTML({ patientName, measureNo, dateStr, result }) {
     html += `<div class="section" style="background:#eef4ff;border:1px solid #93c5fd;">
       <div class="label" style="color:#1d4ed8;">🦯 補助具・手すり</div>
       <div style="font-size:16px;font-weight:700;color:#1e3a5f;margin-bottom:8px;">${result.aids.detected.join("、")}</div>
-      ${result.aids.usage ? `<div style="font-size:13px;color:#333;margin-bottom:6px;line-height:1.7;"><b>使い方：</b>${result.aids.usage}</div>` : ""}
-      ${result.aids.recommendation ? `<div style="font-size:13px;color:#333;line-height:1.7;"><b>アドバイス：</b>${result.aids.recommendation}</div>` : ""}
+      ${result.aids.usage ? `<div style="font-size:13px;color:#333;margin-bottom:6px;line-height:1.7;"><b>使い方：</b>${fixTerms(result.aids.usage)}</div>` : ""}
+      ${result.aids.recommendation ? `<div style="font-size:13px;color:#333;line-height:1.7;"><b>アドバイス：</b>${fixTerms(result.aids.recommendation)}</div>` : ""}
     </div>`;
   }
 
@@ -338,11 +425,15 @@ export default function WalkingVideoAnalyzer() {
   const [activeTab, setActiveTab] = useState("gait");
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [isQuick, setIsQuick] = useState(false);
+  const [tapTargetX, setTapTargetX] = useState(null); // タップされたX座標（比率0-1）
+  const [showTapGuide, setShowTapGuide] = useState(false); // タップガイド表示
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [historyPatient, setHistoryPatient] = useState(null);
   const [historyDetail, setHistoryDetail] = useState(null);
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
+  const tapTargetXRef = useRef(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setPhase("login"), 3000);
@@ -424,7 +515,18 @@ export default function WalkingVideoAnalyzer() {
           const t = (i/(FRAME_COUNT-1))*duration*0.85+duration*0.05;
           await new Promise(res => { const timer=setTimeout(res,3000); vid.onseeked=()=>{clearTimeout(timer);vid.onseeked=null;res();}; vid.currentTime=t; });
           await new Promise(r=>setTimeout(r,150));
-          ctx.drawImage(vid,0,0,w,fh);
+          const tapX = tapTargetXRef.current;
+          if (tapX !== null) {
+            const cropW = Math.round(vw * 0.4);
+            const cropX = Math.max(0, Math.min(vw - cropW, Math.round(vw * tapX - cropW / 2)));
+            const trimW = Math.min(512, cropW);
+            const trimH = Math.round(trimW * (vh / cropW));
+            canvas.width = trimW;
+            canvas.height = trimH;
+            ctx.drawImage(vid, cropX, 0, cropW, vh, 0, 0, trimW, trimH);
+          } else {
+            ctx.drawImage(vid, 0, 0, w, fh);
+          }
           extracted.push({time:t,b64:toBase64(canvas),w,h:fh});
           setProgress(Math.round(((i+1)/FRAME_COUNT)*40));
         }
@@ -449,11 +551,27 @@ export default function WalkingVideoAnalyzer() {
         const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
-        const record = { date:new Date().toISOString(), score:parsed.score, summary:parsed.summary, issues:parsed.issues, exercises:parsed.exercises };
-        await saveAnalysis(patientId, session.user.id, record, parsed);
+        // ③始点ルール（コード側で強制）
+        const hasAids = parsed.aids && parsed.aids.detected && parsed.aids.detected.length > 0;
+        const hasRhythm = parsed.gait && (parsed.gait.cadence||"").includes("安定") || (parsed.gait&&parsed.gait.cadence||"").includes("リズム") || (parsed.gait&&parsed.gait.cadence||"").includes("一定");
+        // 補助具あり→最低60点、補助具なし→最低70点
+        const hasAidsCheck = parsed.aids && parsed.aids.detected && parsed.aids.detected.length > 0;
+        if (hasAidsCheck && parsed.score < 60) parsed.score = 60;
+        if (!hasAidsCheck && parsed.score < 70) parsed.score = 70;
+        if (hasRhythm && parsed.score < 70) parsed.score = 70;
+
+        // ①前回スコアから±10点制限
+        const prevScore = patientHistory.length > 0 ? patientHistory[0].score : null;
+        if (prevScore !== null) {
+          if (parsed.score > prevScore + 10) parsed.score = prevScore + 10;
+          if (parsed.score < prevScore - 10) parsed.score = prevScore - 10;
+        }
+        const parsedFixed = { ...parsed, summary: fixTerms(parsed.summary), progress: fixTerms(parsed.progress), aids: parsed.aids ? { ...parsed.aids, detected: (parsed.aids.detected||[]).map(fixTerms), usage: fixTerms(parsed.aids.usage), recommendation: fixTerms(parsed.aids.recommendation) } : parsed.aids, gait: parsed.gait ? Object.fromEntries(Object.entries(parsed.gait).map(([k,v])=>[k,fixTerms(v)])) : parsed.gait, issues: (parsed.issues||[]).map(iss=>({...iss, title:fixTerms(iss.title), detail:fixTerms(iss.detail)})), exercises: (parsed.exercises||[]).map(ex=>({...ex, name:fixTerms(ex.name), target:fixTerms(ex.target), effect:fixTerms(ex.effect), steps:(ex.steps||[]).map(fixTerms)})), lifestyle: (parsed.lifestyle||[]).map(fixTerms) };
+        const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
+        await saveAnalysis(patientId, session.user.id, record, parsedFixed);
         const newHistory = await getPatientHistory(patientId);
         setPatientHistory(newHistory);
-        setResult(parsed);
+        setResult(parsedFixed);
         setActiveTab(newHistory.length>1?"compare":"gait");
         setPhase("result");
       } finally { vid.src=""; document.body.removeChild(vid); }
@@ -748,6 +866,11 @@ export default function WalkingVideoAnalyzer() {
         )}
 
         {/* 新規登録 */}
+        <div style={{background:C.amber+"12",border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"16px",marginBottom:16}}>
+          <div style={{fontSize:11,color:C.amber,letterSpacing:2,marginBottom:12,fontWeight:700}}>⚡ クイック解析（匿名・履歴なし）</div>
+          <div style={{fontSize:12,color:C.mutedLight,marginBottom:12,lineHeight:1.7}}>利用者登録不要で1回だけ解析できます。結果はDBに保存されません。</div>
+          <button onClick={()=>{setIsQuick(true);setPatientId(null);setPatientName("匿名");setPatientHistory([]);setPhase("upload");}} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${C.amber},#e8821a)`,border:"none",borderRadius:8,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>⚡ クイック解析を開始</button>
+        </div>
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -799,7 +922,35 @@ export default function WalkingVideoAnalyzer() {
           </div>
         ):(
           <div>
+            <div style={{position:"relative",width:"100%"}}>
             <video ref={videoRef} src={videoUrl} controls playsInline style={{width:"100%",borderRadius:12,background:"#000",maxHeight:320,border:`1px solid ${C.border}`}}/>
+            {showTapGuide&&(
+              <div
+                onClick={e=>{
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = (e.clientX - rect.left) / rect.width;
+                  setTapTargetX(x); tapTargetXRef.current = x;
+                }}
+                style={{position:"absolute",inset:0,borderRadius:12,cursor:"crosshair",background:"rgba(0,0,0,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}
+              >
+                {tapTargetX===null?(
+                  <div style={{textAlign:"center",pointerEvents:"none"}}>
+                    <div style={{fontSize:36,marginBottom:8}}>👆</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>被解析者をタップしてください</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>タップした人物を中心に解析します</div>
+                  </div>
+                ):(
+                  <>
+                    <div style={{position:"absolute",top:0,bottom:0,left:`${Math.max(0,(tapTargetX-0.2)*100)}%`,width:"40%",border:`3px solid ${C.accent}`,borderRadius:8,background:`${C.accent}15`,pointerEvents:"none"}}/>
+                    <div style={{position:"absolute",top:"50%",left:`${tapTargetX*100}%`,transform:"translate(-50%,-50%)",width:40,height:40,borderRadius:"50%",border:`3px solid ${C.accent}`,background:`${C.accent}33`,pointerEvents:"none",boxShadow:`0 0 20px ${C.accent}`}}/>
+                    <div style={{position:"absolute",bottom:12,left:0,right:0,textAlign:"center",pointerEvents:"none"}}>
+                      <div style={{fontSize:12,color:"#fff",background:"rgba(0,0,0,0.6)",borderRadius:8,padding:"4px 12px",display:"inline-block"}}>✅ タップ位置を確認してください。ずれていたら再タップできます</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
             <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
               <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10,fontWeight:700}}>解析前チェック</div>
               {[["スマホを固定して撮影した（横に動かして追いかけていない）",true],["真横から全身が映っている",true],["明るさは十分で影が少ない",false]].map(([label,imp])=>(
@@ -810,8 +961,14 @@ export default function WalkingVideoAnalyzer() {
               ))}
             </div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
-              <button onClick={startAnalysis} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>解析を開始 →</button>
+              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
+              {!showTapGuide?(
+                <button onClick={()=>setShowTapGuide(true)} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>👆 被解析者を選択 →</button>
+              ):(
+                <button onClick={startAnalysis} disabled={tapTargetX===null} style={{flex:2,padding:"11px",background:tapTargetX!==null?`linear-gradient(135deg,${C.accent},${C.accentDim})`:"rgba(255,255,255,0.1)",border:"none",borderRadius:10,color:tapTargetX!==null?C.bgSolid:C.muted,fontSize:14,fontWeight:700,cursor:tapTargetX!==null?"pointer":"not-allowed",fontFamily:C.font,boxShadow:tapTargetX!==null?`0 4px 20px ${C.accent}33`:"none"}}>
+                  {tapTargetX===null?"被解析者をタップしてください":"解析を開始 →"}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -833,8 +990,8 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="extracting"||phase==="analyzing") return (
     <div style={{...wrap,justifyContent:"center"}}><div style={{...maxW,textAlign:"center",paddingTop:60}}>
       <div style={{position:"relative",width:120,height:120,margin:"0 auto 28px"}}>
-        <svg width="120" height="120" style={{transform:"rotate(-90deg)",position:"absolute"}}><circle cx="60" cy="60" r="50" fill="none" stroke={C.border} strokeWidth="6"/><circle cx="60" cy="60" r="50" fill="none" stroke={C.accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(progress/100)*314} 314`} style={{transition:"stroke-dasharray 0.5s ease"}}/></svg>
-        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:22,fontWeight:800,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{progress}%</span></div>
+        <svg width="120" height="120" style={{transform:"rotate(-90deg)",position:"absolute",top:0,left:0,right:0,bottom:0}}><circle cx="60" cy="60" r="50" fill="none" stroke={C.border} strokeWidth="6"/><circle cx="60" cy="60" r="50" fill="none" stroke={C.accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(progress/100)*314} 314`} style={{transition:"stroke-dasharray 0.5s ease"}}/></svg>
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:22,fontWeight:800,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{progress}%</span></div>
       </div>
       {frames.length>0&&(<div style={{marginBottom:20,display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}}>{frames.map((f,i)=>(<div key={i} style={{border:`1px solid ${C.accent}55`,borderRadius:6,overflow:"hidden"}}><img src={`data:image/jpeg;base64,${f.b64}`} alt="" style={{display:"block",width:64,height:42,objectFit:"cover"}}/></div>))}</div>)}
       <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>{progressLabel}</div>
@@ -879,8 +1036,9 @@ export default function WalkingVideoAnalyzer() {
         <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>
           {tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"8px 2px",background:activeTab===t.id?C.accent:"transparent",border:"none",borderRadius:8,color:activeTab===t.id?C.bgSolid:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,lineHeight:1.4}}>{t.icon}<br/>{t.label}</button>))}
         </div>
-        {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
-        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {a}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{result.aids.usage}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{result.aids.recommendation}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
+        {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>
+        {patientHistory.length>1&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:4}}>歩行指標の推移</div><GaitMetricsHistoryChart history={patientHistory}/></div>)}{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
+        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {fixTerms(a)}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{fixTerms(result.aids.usage)}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{fixTerms(result.aids.recommendation)}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
         {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
         {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
