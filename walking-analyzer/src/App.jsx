@@ -551,6 +551,12 @@ export default function WalkingVideoAnalyzer() {
         const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
         setProgress(100);
         await new Promise(r=>setTimeout(r,300));
+        // ③始点ルール（コード側で強制）
+        const hasAids = parsed.aids && parsed.aids.detected && parsed.aids.detected.length > 0;
+        const hasRhythm = parsed.gait && (parsed.gait.cadence||"").includes("安定") || (parsed.gait&&parsed.gait.cadence||"").includes("リズム") || (parsed.gait&&parsed.gait.cadence||"").includes("一定");
+        if (hasAids && parsed.score < 60) parsed.score = 60;
+        if (hasRhythm && parsed.score < 70) parsed.score = 70;
+
         // ①前回スコアから±10点制限
         const prevScore = patientHistory.length > 0 ? patientHistory[0].score : null;
         if (prevScore !== null) {
