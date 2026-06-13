@@ -968,8 +968,8 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="extracting"||phase==="analyzing") return (
     <div style={{...wrap,justifyContent:"center"}}><div style={{...maxW,textAlign:"center",paddingTop:60}}>
       <div style={{position:"relative",width:120,height:120,margin:"0 auto 28px"}}>
-        <svg width="120" height="120" style={{transform:"rotate(-90deg)",position:"absolute",top:0,left:0}}><circle cx="60" cy="60" r="50" fill="none" stroke={C.border} strokeWidth="6"/><circle cx="60" cy="60" r="50" fill="none" stroke={C.accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(progress/100)*314} 314`} style={{transition:"stroke-dasharray 0.5s ease"}}/></svg>
-        <div style={{position:"absolute",top:0,left:0,width:120,height:120,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:22,fontWeight:800,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{progress}%</span></div>
+        <svg width="120" height="120" style={{transform:"rotate(-90deg)",position:"absolute",top:0,left:0,right:0,bottom:0}}><circle cx="60" cy="60" r="50" fill="none" stroke={C.border} strokeWidth="6"/><circle cx="60" cy="60" r="50" fill="none" stroke={C.accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(progress/100)*314} 314`} style={{transition:"stroke-dasharray 0.5s ease"}}/></svg>
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:22,fontWeight:800,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{progress}%</span></div>
       </div>
       {frames.length>0&&(<div style={{marginBottom:20,display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}}>{frames.map((f,i)=>(<div key={i} style={{border:`1px solid ${C.accent}55`,borderRadius:6,overflow:"hidden"}}><img src={`data:image/jpeg;base64,${f.b64}`} alt="" style={{display:"block",width:64,height:42,objectFit:"cover"}}/></div>))}</div>)}
       <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>{progressLabel}</div>
