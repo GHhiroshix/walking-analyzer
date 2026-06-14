@@ -562,12 +562,6 @@ export default function WalkingVideoAnalyzer() {
         if (!hasAidsCheck && parsed.score < 70) parsed.score = 70;
         if (hasRhythm && parsed.score < 70) parsed.score = 70;
 
-        // ①前回スコアから±10点制限
-        const prevScore = patientHistory.length > 0 ? patientHistory[0].score : null;
-        if (prevScore !== null) {
-          if (parsed.score > prevScore + 10) parsed.score = prevScore + 10;
-          if (parsed.score < prevScore - 10) parsed.score = prevScore - 10;
-        }
         const parsedFixed = { ...parsed, summary: fixTerms(parsed.summary), progress: fixTerms(parsed.progress), aids: parsed.aids ? { ...parsed.aids, detected: (parsed.aids.detected||[]).map(fixTerms), usage: fixTerms(parsed.aids.usage), recommendation: fixTerms(parsed.aids.recommendation) } : parsed.aids, gait: parsed.gait ? Object.fromEntries(Object.entries(parsed.gait).map(([k,v])=>[k,fixTerms(v)])) : parsed.gait, issues: (parsed.issues||[]).map(iss=>({...iss, title:fixTerms(iss.title), detail:fixTerms(iss.detail)})), exercises: (parsed.exercises||[]).map(ex=>({...ex, name:fixTerms(ex.name), target:fixTerms(ex.target), effect:fixTerms(ex.effect), steps:(ex.steps||[]).map(fixTerms)})), lifestyle: (parsed.lifestyle||[]).map(fixTerms) };
         const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
         await saveAnalysis(patientId, session.user.id, record, parsedFixed);
