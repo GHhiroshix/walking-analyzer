@@ -87,6 +87,29 @@ async function deleteSingleHistory(analysisId) {
   if (error) { console.error(error); return false; }
   return true;
 }
+async function getStaffs(facilityId) {
+  const { data, error } = await supabase.from("staffs").select("id, name, email, role, created_at").eq("facility_id", facilityId).order("created_at", { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function createStaff(facilityId, name, email, role) {
+  const { data, error } = await supabase.from("staffs").insert({ facility_id: facilityId, name, email, role }).select().single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function deleteStaff(staffId) {
+  const { error } = await supabase.from("staffs").delete().eq("id", staffId);
+  if (error) { console.error(error); return false; }
+  return true;
+}
+
+async function getMyRole(facilityId, email) {
+  const { data, error } = await supabase.from("staffs").select("role").eq("facility_id", facilityId).eq("email", email).single();
+  if (error) return null;
+  return data?.role || null;
+}
 
 function toBase64(canvas) { return canvas.toDataURL("image/jpeg", 0.75).split(",")[1]; }
 function formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,"0")}:${Math.floor(s%60).toString().padStart(2,"0")}`; }
@@ -459,6 +482,12 @@ const toggleTheme = () => {
   const [authError, setAuthError] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [session, setSession] = useState(null);
+  const [myRole, setMyRole] = useState(null);
+  const [staffs, setStaffs] = useState([]);
+  const [staffNameInput, setStaffNameInput] = useState("");
+  const [staffEmailInput, setStaffEmailInput] = useState("");
+  const [staffRoleInput, setStaffRoleInput] = useState("staff");
+  const [showStaffManager, setShowStaffManager] = useState(false);
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
   const [patients, setPatients] = useState([]);
   const [patientId, setPatientId] = useState(null);
@@ -490,11 +519,11 @@ const toggleTheme = () => {
     const timeout = setTimeout(() => setPhase("login"), 3000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); } else { setPhase("login"); }
+      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); } else { setPhase("login"); }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); } else { setPhase("login"); }
+      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); } else { setPhase("login"); }
     });
     const l = document.createElement("link");
     l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
@@ -507,6 +536,15 @@ const toggleTheme = () => {
     const withHistory = await Promise.all(list.map(async p => { const hist = await getPatientHistory(p.id); return { ...p, history: hist }; }));
     setPatients(withHistory);
   };
+const loadStaffs = async (facilityId) => {
+  const list = await getStaffs(facilityId);
+  setStaffs(list);
+};
+
+const loadMyRole = async (facilityId, email) => {
+  const role = await getMyRole(facilityId, email);
+  setMyRole(role);
+};
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -631,7 +669,58 @@ const toggleTheme = () => {
     if (session) await loadPatients(session.user.id);
   };
 
-  const DeleteDialog = () => {
+  const StaffManager = () => {
+  if (!showStaffManager) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
+      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontWeight:700,fontSize:16,color:C.text}}>👥 スタッフ管理</div>
+          <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          <input value={staffNameInput} onChange={e=>setStaffNameInput(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <input value={staffEmailInput} onChange={e=>setStaffEmailInput(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <select value={staffRoleInput} onChange={e=>setStaffRoleInput(e.target.value)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
+            <option value="staff">スタッフ</option>
+            <option value="admin">管理者</option>
+          </select>
+          <button onClick={async()=>{
+            if(!staffNameInput.trim()||!staffEmailInput.trim()) return;
+            await createStaff(session.user.id, staffNameInput.trim(), staffEmailInput.trim(), staffRoleInput);
+            setStaffNameInput(""); setStaffEmailInput(""); setStaffRoleInput("staff");
+            await loadStaffs(session.user.id);
+          }} style={{padding:"10px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>
+            ＋ スタッフを追加
+          </button>
+        </div>
+        <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
+        {staffs.length===0?(
+          <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"20px"}}>まだ登録されていません</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {staffs.map(s=>(
+              <div key={s.id} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:C.text}}>{s.name}</div>
+                  <div style={{fontSize:11,color:C.muted}}>{s.email}</div>
+                  <div style={{fontSize:10,marginTop:2,color:s.role==="admin"?C.amber:C.accent}}>{s.role==="admin"?"👑 管理者":"👤 スタッフ"}</div>
+                </div>
+                <button onClick={async()=>{
+                  if(!window.confirm(`${s.name}を削除しますか？`)) return;
+                  await deleteStaff(s.id);
+                  await loadStaffs(session.user.id);
+                }} style={{background:"transparent",border:`1px solid ${C.red}44`,borderRadius:6,color:C.red,fontSize:11,cursor:"pointer",padding:"5px 10px",fontFamily:C.font}}>削除</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DeleteDialog = () => {
     if (!deleteConfirm) return null;
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
@@ -705,7 +794,10 @@ const toggleTheme = () => {
     return (
       <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
-          <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
+          <div style={{display:"flex",gap:8}}>
+  {myRole==="admin"&&<button onClick={()=>setShowStaffManager(true)} style={{background:"none",border:`1px solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
+  <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
+</div>
         </div>
         <div style={{paddingTop:24,marginBottom:28,textAlign:"center"}}>
           <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
@@ -848,7 +940,7 @@ const toggleTheme = () => {
 
     return (
       <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
-        <DeleteDialog/>
+        <DeleteDialog/><StaffManager/>
         <div style={{paddingTop:40,marginBottom:28}}>
           <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
           <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
@@ -899,7 +991,8 @@ const toggleTheme = () => {
                         <div style={{color:C.muted,fontSize:16,cursor:"pointer"}}>›</div>
                       </div>
                       <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
-                        <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:C.font}}>📋 履歴を削除</button>
+                        {myRole==="admin"&&<button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:C.font}}>📋 履歴を削除</button>}
+{myRole==="admin"&&<button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}>🗑️ 利用者を削除</button>} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:C.font}}>📋 履歴を削除</button>
                         <button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}>🗑️ 利用者を削除</button>
                       </div>
                     </div>
