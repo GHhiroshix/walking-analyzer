@@ -684,8 +684,8 @@ const loadMyRole = async (facilityId, email) => {
           <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-          <input value={localName} onChange={e=>setLocalName(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
-          <input value={localEmail} onChange={e=>setLocalEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <input value={localName} onChange={e=>setLocalName(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
+          <input value={localEmail} onChange={e=>setLocalEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
           <select value={localRole} onChange={e=>setLocalRole(e.target.value)} style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
             <option value="staff">スタッフ</option>
             <option value="admin">管理者</option>
