@@ -681,7 +681,7 @@ const loadMyRole = async (facilityId, email) => {
           <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-          <input value={staffNameInput} onChange={e=>setStaffNameInput(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <input value={staffNameInput} onChange={e=>setStaffNameInput(e.target.value)} onCompositionStart={()=>{}} onCompositionEnd={e=>setStaffNameInput(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
           <input value={staffEmailInput} onChange={e=>setStaffEmailInput(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
           <select value={staffRoleInput} onChange={e=>setStaffRoleInput(e.target.value)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
             <option value="staff">スタッフ</option>
