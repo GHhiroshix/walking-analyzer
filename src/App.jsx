@@ -540,11 +540,13 @@ const loadStaffs = async (facilityId) => {
   const list = await getStaffs(facilityId);
   setStaffs(list);
 };
-
+const loadMyRole = async (facilityId, email) => {
   const role = await getMyRole(facilityId, email);
+  console.log("myRole取得結果:", role, "email:", email, "facilityId:", facilityId);
   setMyRole(role);
 };
 
+  
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setPhase("login"); setPatients([]); setPatientId(null); setPatientName("");
