@@ -543,6 +543,10 @@ const loadStaffs = async (facilityId) => {
 
 const loadMyRole = async (facilityId, email) => {
   const role = await getMyRole(facilityId, email);
+  console.log("myRole取得結果:", role, "email:", email, "facilityId:", facilityId);
+  setMyRole(role);
+};
+  const role = await getMyRole(facilityId, email);
   setMyRole(role);
 };
 
