@@ -728,7 +728,7 @@ const loadMyRole = async (facilityId, email) => {
 const DeleteDialog = () => {
     if (!deleteConfirm) return null;
     return (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:340}}>
           <div style={{fontSize:18,marginBottom:12,textAlign:"center"}}>{deleteConfirm.type==="patient"?"🗑️":"📋"}</div>
           <div style={{fontWeight:700,fontSize:15,marginBottom:8,textAlign:"center",color:C.text}}>{deleteConfirm.type==="patient"?"利用者を削除しますか？":"履歴を削除しますか？"}</div>
