@@ -678,7 +678,7 @@ const loadMyRole = async (facilityId, email) => {
   if (!showStaffManager) return null;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
-      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto"}}>
+      <div style={{background:theme==="dark"?"#f5f0e8":"#1a2233",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.15)":"rgba(255,255,255,0.15)"}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto",color:theme==="dark"?"#2d2416":"#ddeeff"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div style={{fontWeight:700,fontSize:16,color:C.text}}>👥 スタッフ管理</div>
           <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
