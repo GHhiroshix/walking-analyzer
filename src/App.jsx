@@ -1,7 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
-const C = {
+
+const LIGHT = {
+  bg: "linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 40%, #f0f4ff 70%, #e8eeff 100%)",
+  bgSolid: "#f0f4ff",
+  surface: "rgba(0,0,0,0.05)",
+  panel: "rgba(0,0,0,0.03)",
+  border: "rgba(0,0,0,0.12)",
+  accent: "#0a8f6a", accentDim: "#077a5a", blue: "#1a6fd4",
+  amber: "#c47c00", red: "#cc2244", text: "#1a2033",
+  muted: "rgba(0,0,0,0.45)", mutedLight: "rgba(0,0,0,0.65)",
+  font: "'Kosugi Maru', sans-serif",
+};
+
+const DARK = {
   bg: "linear-gradient(135deg, #0a0f1e 0%, #0d1a2e 40%, #0a1628 70%, #060d18 100%)",
   bgSolid: "#0a0f1e",
   surface: "rgba(255,255,255,0.06)",
@@ -12,6 +25,24 @@ const C = {
   muted: "rgba(255,255,255,0.56)", mutedLight: "rgba(255,255,255,0.74)",
   font: "'Kosugi Maru', sans-serif",
 };
+
+const ThemeToggle = ({ toggleTheme, theme }) => (
+  <button
+    onClick={toggleTheme}
+    style={{
+      position: "fixed", top: 16, right: 16, zIndex: 100,
+      background: "rgba(255,255,255,0.1)",
+      border: `1px solid rgba(255,255,255,0.2)`,
+      borderRadius: 100, padding: "6px 14px",
+      color: theme === "dark" ? "#ddeeff" : "#1a2033",
+      fontSize: 13, cursor: "pointer",
+      fontFamily: "'Kosugi Maru', sans-serif",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    {theme === "dark" ? "☀️ ライト" : "🌙 ダーク"}
+  </button>
+);
 
 const GlassOrbs = () => (
   <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,overflow:"hidden"}}>
@@ -412,6 +443,15 @@ function openPrintWindow(html) {
 }
 
 export default function WalkingVideoAnalyzer() {
+const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+const getSavedTheme = () => localStorage.getItem("theme") || getSystemTheme();
+const [theme, setTheme] = useState(getSavedTheme);
+const C = theme === "dark" ? DARK : LIGHT;
+const toggleTheme = () => {
+  const next = theme === "dark" ? "light" : "dark";
+  setTheme(next);
+  localStorage.setItem("theme", next);
+};
   const [phase, setPhase] = useState("loading");
   const [authMode, setAuthMode] = useState("login");
   const [authEmail, setAuthEmail] = useState("");
@@ -630,7 +670,7 @@ export default function WalkingVideoAnalyzer() {
       setAuthLoading(false);
     };
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:60,marginBottom:32,textAlign:"center"}}>
           <div style={{display:"inline-flex",gap:6,alignItems:"center",background:"rgba(57,224,176,0.12)",border:`1px solid rgba(57,224,176,0.25)`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
           <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>{authMode==="login"?"施設ログイン":"施設アカウント登録"}</h1>
@@ -663,7 +703,7 @@ export default function WalkingVideoAnalyzer() {
       {key:"c4",label:"本アプリの解析結果は参考情報であり、医療診断の代替ではないことを理解しています",note:"強い不安がある場合は医療機関・理学療法士にご相談ください",imp:false},
     ];
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
           <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
         </div>
@@ -706,7 +746,7 @@ export default function WalkingVideoAnalyzer() {
       openPrintWindow(html);
     };
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>setHistoryDetail(null)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 履歴一覧に戻る</button>
           <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{formatDate(h.date)}</div>
@@ -732,7 +772,7 @@ export default function WalkingVideoAnalyzer() {
   if (phase==="historyList" && historyPatient) {
     const hist = historyPatient.history || [];
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -807,7 +847,7 @@ export default function WalkingVideoAnalyzer() {
     });
 
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <DeleteDialog/>
         <div style={{paddingTop:40,marginBottom:28}}>
           <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
@@ -909,7 +949,7 @@ export default function WalkingVideoAnalyzer() {
   // ── UPLOAD ────────────────────────────────────────────────────────────────
   if (phase==="upload") {
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:20}}>
           <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:16,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1018,7 +1058,7 @@ export default function WalkingVideoAnalyzer() {
       openPrintWindow(html);
     };
     return (
-      <div style={wrap}><GlassOrbs/><div style={maxW}><div style={{paddingTop:32}}>
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}><div style={{paddingTop:32}}>
         {/* ヘッダー：測定履歴へ戻るボタン追加 */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1058,7 +1098,7 @@ export default function WalkingVideoAnalyzer() {
   // ── LOADING ───────────────────────────────────────────────────────────────
   if (phase==="loading") return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-      <GlassOrbs/>
+      <GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/>
       <div style={{color:C.accent,fontSize:16,fontFamily:C.font,position:"relative",zIndex:1}}>読み込み中...</div>
     </div>
   );
