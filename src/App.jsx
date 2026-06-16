@@ -3,14 +3,14 @@ import { supabase } from "./supabase.js";
 
 
 const LIGHT = {
-  bg: "linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 40%, #f0f4ff 70%, #e8eeff 100%)",
-  bgSolid: "#f0f4ff",
-  surface: "rgba(0,0,0,0.05)",
-  panel: "rgba(0,0,0,0.03)",
-  border: "rgba(0,0,0,0.12)",
-  accent: "#0a8f6a", accentDim: "#077a5a", blue: "#1a6fd4",
-  amber: "#c47c00", red: "#cc2244", text: "#1a2033",
-  muted: "rgba(0,0,0,0.45)", mutedLight: "rgba(0,0,0,0.65)",
+  bg: "linear-gradient(135deg, #f5f0e8 0%, #ede8df 40%, #f0ebe2 70%, #e8e3da 100%)",
+  bgSolid: "#f5f0e8",
+  surface: "rgba(0,0,0,0.06)",
+  panel: "rgba(0,0,0,0.04)",
+  border: "rgba(0,0,0,0.10)",
+  accent: "#0a7a5a", accentDim: "#086648", blue: "#1a5fb4",
+  amber: "#b06e00", red: "#b52040", text: "#2d2416",
+  muted: "rgba(45,36,22,0.50)", mutedLight: "rgba(45,36,22,0.70)",
   font: "'Kosugi Maru', sans-serif",
 };
 
