@@ -802,7 +802,7 @@ export default function WalkingVideoAnalyzer() {
     // 検索フィルター（名前・ふりがな両方）
     const filtered = patients.filter(p => {
       const q = searchQuery.trim().toLowerCase();
-      if (!q) return true;
+      if (!q) return false;
       return (p.name||"").toLowerCase().includes(q) || (p.furigana||"").toLowerCase().includes(q);
     });
 
