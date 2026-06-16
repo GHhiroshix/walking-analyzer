@@ -106,9 +106,10 @@ async function deleteStaff(staffId) {
 }
 
 async function getMyRole(facilityId, email) {
-  const { data, error } = await supabase.from("staffs").select("role").eq("facility_id", facilityId).eq("email", email).single();
-  if (error) return null;
-  return data?.role || null;
+  const { data, error } = await supabase.from("staffs").select("role").eq("email", email);
+  console.log("getMyRole data:", data, "error:", error);
+  if (error || !data || data.length === 0) return null;
+  return data[0].role;
 }
 
 function toBase64(canvas) { return canvas.toDataURL("image/jpeg", 0.75).split(",")[1]; }
