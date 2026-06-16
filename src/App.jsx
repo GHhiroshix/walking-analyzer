@@ -794,7 +794,7 @@ const DeleteDialog = () => {
       {key:"c4",label:"本アプリの解析結果は参考情報であり、医療診断の代替ではないことを理解しています",note:"強い不安がある場合は医療機関・理学療法士にご相談ください",imp:false},
     ];
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><StaffManager/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
           <div style={{display:"flex",gap:8}}>
   {myRole==="admin"&&<button onClick={()=>setShowStaffManager(true)} style={{background:"none",border:`1px solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
