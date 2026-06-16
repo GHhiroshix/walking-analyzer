@@ -672,6 +672,9 @@ const loadMyRole = async (facilityId, email) => {
   };
 
   const StaffManager = () => {
+  const [localName, setLocalName] = useState("");
+  const [localEmail, setLocalEmail] = useState("");
+  const [localRole, setLocalRole] = useState("staff");
   if (!showStaffManager) return null;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
@@ -681,16 +684,16 @@ const loadMyRole = async (facilityId, email) => {
           <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-          <input value={staffNameInput} onChange={e=>setStaffNameInput(e.target.value)} onCompositionStart={()=>{}} onCompositionEnd={e=>setStaffNameInput(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
-          <input value={staffEmailInput} onChange={e=>setStaffEmailInput(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
-          <select value={staffRoleInput} onChange={e=>setStaffRoleInput(e.target.value)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
+          <input value={localName} onChange={e=>setLocalName(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <input value={localEmail} onChange={e=>setLocalEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}/>
+          <select value={localRole} onChange={e=>setLocalRole(e.target.value)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
             <option value="staff">スタッフ</option>
             <option value="admin">管理者</option>
           </select>
           <button onClick={async()=>{
-            if(!staffNameInput.trim()||!staffEmailInput.trim()) return;
-            await createStaff(session.user.id, staffNameInput.trim(), staffEmailInput.trim(), staffRoleInput);
-            setStaffNameInput(""); setStaffEmailInput(""); setStaffRoleInput("staff");
+            if(!localName.trim()||!localEmail.trim()) return;
+            await createStaff(session.user.id, localName.trim(), localEmail.trim(), localRole);
+            setLocalName(""); setLocalEmail(""); setLocalRole("staff");
             await loadStaffs(session.user.id);
           }} style={{padding:"10px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>
             ＋ スタッフを追加
