@@ -87,6 +87,17 @@ async function deleteSingleHistory(analysisId) {
   if (error) { console.error(error); return false; }
   return true;
 }
+async function getFacilitySettings(facilityId) {
+  const { data, error } = await supabase.from("facility_settings").select("*").eq("facility_id", facilityId).single();
+  if (error) return { alert_threshold: 5 };
+  return data;
+}
+
+async function upsertFacilitySettings(facilityId, alertThreshold) {
+  const { error } = await supabase.from("facility_settings").upsert({ facility_id: facilityId, alert_threshold: alertThreshold, updated_at: new Date().toISOString() }, { onConflict: "facility_id" });
+  if (error) console.error(error);
+}
+
 async function getStaffs(facilityId) {
   const { data, error } = await supabase.from("staffs").select("id, name, email, role, created_at").eq("facility_id", facilityId).order("created_at", { ascending: true });
   if (error) { console.error(error); return []; }
@@ -489,6 +500,7 @@ const toggleTheme = () => {
   const [staffEmailInput, setStaffEmailInput] = useState("");
   const [staffRoleInput, setStaffRoleInput] = useState("staff");
   const [showStaffManager, setShowStaffManager] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState(5);
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
   const [patients, setPatients] = useState([]);
   const [patientId, setPatientId] = useState(null);
@@ -520,11 +532,11 @@ const toggleTheme = () => {
     const timeout = setTimeout(() => setPhase("login"), 3000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); } else { setPhase("login"); }
+      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); loadFacilitySettings(s.user.id); }else { setPhase("login"); }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); } else { setPhase("login"); }
+      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); loadFacilitySettings(s.user.id); } else { setPhase("login"); }
     });
     const l = document.createElement("link");
     l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
@@ -541,6 +553,11 @@ const loadStaffs = async (facilityId) => {
   const list = await getStaffs(facilityId);
   setStaffs(list);
 };
+const loadFacilitySettings = async (facilityId) => {
+  const settings = await getFacilitySettings(facilityId);
+  setAlertThreshold(settings.alert_threshold || 5);
+};
+
 const loadMyRole = async (facilityId, email) => {
   const role = await getMyRole(facilityId, email);
   console.log("myRole取得結果:", role, "email:", email, "facilityId:", facilityId);
@@ -699,6 +716,15 @@ const loadMyRole = async (facilityId, email) => {
             ＋ スタッフを追加
           </button>
         </div>
+{myRole==="admin"&&<div style={{marginBottom:16,padding:"12px 14px",background:theme==="dark"?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.15)",borderRadius:10,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)"}`}}>
+  <div style={{fontSize:11,fontWeight:700,marginBottom:8}}>⚠️ アラート設定</div>
+  <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13}}>
+    <span>前回より</span>
+    <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+    <span>点以上下がったら赤くアラート</span>
+  </div>
+  <button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>
+</div>}
         <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
         {staffs.length===0?(
           <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"20px"}}>まだ登録されていません</div>
@@ -984,8 +1010,10 @@ const DeleteDialog = () => {
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {filtered.map(p=>{
                   const hist=p.history||[], last=hist[0];
+const prev=hist[1];
+const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;
                   return (
-                    <div key={p.id} style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
+                    <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:C.surface,border:`1.5px solid ${isAlert?C.red:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
                       <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");}}>
                         <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                         <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
