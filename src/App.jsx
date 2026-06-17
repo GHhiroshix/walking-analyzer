@@ -718,19 +718,19 @@ const loadMyRole = async (facilityId, email) => {
             ＋ スタッフを追加
           </button>
         </div>
-{myRole==="admin"&&<div style={{marginBottom:16,padding:"12px 14px",background:theme==="dark"?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.15)",borderRadius:10,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)"}`}}>
+<div style={{marginBottom:16,padding:"12px 14px",background:theme==="dark"?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.15)",borderRadius:10,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)"}`}}>
   <div style={{fontSize:11,fontWeight:700,marginBottom:8}}>⚠️ アラート設定</div>
   <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13}}>
     <span>前回より</span>
-    <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+    <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))}disabled={myRole!=="admin"}style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
     <span>点以上下がったら赤くアラート</span>
   </div>
   <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8}}>
     <span>測定が</span>
-    <input type="number" min="1" max="365" value={noMeasurementDays} onChange={e=>setNoMeasurementDays(Number(e.target.value))} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+    <input type="number" min="1" max="365" value={noMeasurementDays} onChange={e=>setNoMeasurementDays(Number(e.target.value))}disabled={myRole!=="admin"}style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
     <span>日以上ないとアラート</span>
   </div>
-  <button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold, noMeasurementDays); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>
+  {myRole==="admin"&&<button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold, noMeasurementDays); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>}
 </div>}
         <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
         {staffs.length===0?(
