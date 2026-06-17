@@ -53,12 +53,12 @@ const GlassOrbs = () => (
 );
 
 async function getPatients(facilityId) {
-  const { data, error } = await supabase.from("patients").select("id, name, furigana, created_at").eq("facility_id", facilityId).order("furigana", { ascending: true });
+  const { data, error } = await supabase.from("patients").select("id, name, furigana, age_group, created_at").eq("facility_id", facilityId).order("furigana", { ascending: true });
   if (error) { console.error(error); return []; }
   return data || [];
 }
-async function createPatient(facilityId, name, furigana) {
-  const { data, error } = await supabase.from("patients").insert({ facility_id: facilityId, name, furigana }).select().single();
+async function createPatient(facilityId, name, furigana, ageGroup) {
+  const { data, error } = await supabase.from("patients").insert({ facility_id: facilityId, name, furigana, age_group: ageGroup }).select().single();
   if (error) { console.error(error); return null; }
   return data;
 }
@@ -138,7 +138,7 @@ function printScoreColor(score) {
   return score >= 75 ? "#1a6640" : score >= 50 ? "#b55a00" : "#c0151f";
 }
 
-const buildPrompt = (frameCount, history) => {
+const buildPrompt = (frameCount, history, ageGroup) => {
   const hasHistory = history && history.length > 0;
   const historyBlock = hasHistory
     ? `\n【過去の測定履歴（最新${Math.min(history.length,3)}回）】\n${history.slice(0,3).map((h,i) => `[${i+1}回前 ${formatDate(h.date)}] スコア:${h.score} 課題:${(h.issues||[]).map(x=>x.title).join("・")} 体操:${(h.exercises||[]).map(x=>x.name).join("・")}`).join("\n")}\n前回の体操から進捗を考慮し難易度を上げるか別のアプローチを提案してください。progressフィールドに前回比コメントを記載してください。`
@@ -157,7 +157,13 @@ const buildPrompt = (frameCount, history) => {
 - 体操提案は補助具の有無・種類に合わせた内容にしてください。
 - 映像内で本人が手で押しながら歩いている4輪または3輪の歩行補助具は、見た目がベビーカーに似ていても「歩行器」または「シルバーカー」として判定してください。付き添いの人が押している場合のみベビーカーと判定してください。
 ${historyBlock}
+【年代情報】
+${ageGroup ? `この方の年代は「${ageGroup}」です。年代別の標準歩行速度と比較して、忖度せず客観的に評価してください。標準的なら「標準的な速度です」、遅ければ「同年代の標準（毎秒〇m前後）よりやや遅く、フレイル傾向が見られます」のように、年代を踏まえた率直な評価をしてください。` : "年代情報が未登録のため、一般的な高齢者の標準値で評価してください。"}
 
+【歩行速度の推定 — 必ず含めること】
+- 動画のフレーム間の時間と歩数・歩幅を画像から判断し、毎秒の歩行速度（m/秒）を具体的な数値で推定してください。
+- 推定値は「速度：毎秒○.○m」の形式にしてください。
+- 年代別の標準値（参考：60代 毎秒1.0〜1.2m、70代 毎秒0.9〜1.1m、80代 毎秒0.7〜0.9m、90代以上 毎秒0.5〜0.7m、補助具使用時はこれより遅くなるのが通常）と比較し、speedCommentフィールドに客観的な評価を記載してください。お世辞は禁止です。
 【スコアの決まり — 必ず守ること】
 - scoreは0〜100の整数で返してください。
 - 前回のスコアを参考にしてはいけません。毎回独立して客観的に採点してください。
@@ -197,7 +203,7 @@ ${historyBlock}
 - progressは「前回より足の上がりが良くなっています」のように、ご本人やご家族が喜べる言葉で書いてください。
 
 以下のJSON形式のみで回答してください（前置き・後置き・コードブロック記号なし）：
-{"score":数値,"summary":"総合評価（25文字以内）","progress":"前回比コメント（初回はnull）","aids":{"detected":[],"usage":null,"recommendation":null},"gait":{"cadence":"","stride":"","posture":"","armSwing":"","footClearance":""},"issues":[{"title":"","detail":"","severity":"high|medium|low"}],"exercises":[{"name":"","target":"","duration":"","steps":[],"effect":"","isNew":true}],"lifestyle":[]}`;
+{"score":数値,"summary":"総合評価（25文字以内）","progress":"前回比コメント（初回はnull）","aids":{"detected":[],"usage":null,"recommendation":null},"gait":{"cadence":"","stride":"","posture":"","armSwing":"","footClearance":"","speed":"","speedComment":""},"issues":[{"title":"","detail":"","severity":"high|medium|low"}],"exercises":[{"name":"","target":"","duration":"","steps":[],"effect":"","isNew":true}],"lifestyle":[]}`;
 };
 
 function ScoreArc({ score }) {
@@ -507,8 +513,10 @@ const toggleTheme = () => {
   const [patients, setPatients] = useState([]);
   const [patientId, setPatientId] = useState(null);
   const [patientName, setPatientName] = useState("");
+  const [patientAgeGroup, setPatientAgeGroup] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [furiganaInput, setFuriganaInput] = useState("");
+  const [ageGroupInput, setAgeGroupInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [patientHistory, setPatientHistory] = useState([]);
   const [videoUrl, setVideoUrl] = useState(null);
@@ -656,7 +664,7 @@ const loadMyRole = async (facilityId, email) => {
           {type:"text",text:`【フレーム${i+1}/${extracted.length} — ${formatTime(f.time)}】`},
           {type:"image",source:{type:"base64",media_type:"image/jpeg",data:f.b64}},
         ]));
-        imageContent.push({type:"text",text:buildPrompt(extracted.length,patientHistory)});
+        imageContent.push({type:"text",text:buildPrompt(extracted.length,patientHistory,patientAgeGroup)});
         const resp = await fetch("/api/analyze",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
@@ -900,7 +908,7 @@ const DeleteDialog = () => {
         <div style={{display:"flex",gap:10,marginTop:4}}>
           <button onClick={()=>setHistoryDetail(null)} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.mutedLight,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>← 履歴一覧</button>
           <button onClick={handleHistoryPrint} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>🖨️ 印刷</button>
-          <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
+          <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
         </div>
       </div></div>
     );
@@ -918,7 +926,7 @@ const DeleteDialog = () => {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
           </div>
         </div>
         {hist.length===0?(
@@ -971,9 +979,9 @@ const DeleteDialog = () => {
         p.name === nameInput.trim() && p.furigana === furiganaInput.trim()
       );
       if (dup) { setError(`「${nameInput.trim()}」さんはすでに登録されています。`); return; }
-      const newPatient = await createPatient(effectiveFacilityId, nameInput.trim(), furiganaInput.trim());
+      const newPatient = await createPatient(effectiveFacilityId, nameInput.trim(), furiganaInput.trim(), ageGroupInput);
       if (!newPatient) { setError("登録に失敗しました。再度お試しください。"); return; }
-      setPatientId(newPatient.id); setPatientName(newPatient.name); setPatientHistory([]); setNameInput(""); setFuriganaInput(""); setSearchQuery("");
+      setPatientId(newPatient.id); setPatientName(newPatient.name); setPatientAgeGroup(newPatient.age_group || ""); setPatientHistory([]); setNameInput(""); setFuriganaInput(""); setAgeGroupInput(""); setSearchQuery("");
       await loadPatients(effectiveFacilityId); setPhase("upload");
     };
 
@@ -1066,6 +1074,18 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
               placeholder="ふりがな（例：たなかよしこ）"
               style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
             />
+<select
+              value={ageGroupInput}
+              onChange={e=>setAgeGroupInput(e.target.value)}
+              style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+            >
+              <option value="">年代を選択（任意）</option>
+              <option value="60代未満">60代未満</option>
+              <option value="60代">60代</option>
+              <option value="70代">70代</option>
+              <option value="80代">80代</option>
+              <option value="90代以上">90代以上</option>
+            </select>
             <div style={{display:"flex",gap:8}}>
               <input
                 value={nameInput}
@@ -1224,7 +1244,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
         </div>
         {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>
         {patientHistory.length>1&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:4}}>歩行指標の推移</div><GaitMetricsHistoryChart history={patientHistory}/></div>)}{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
-        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {fixTerms(a)}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{fixTerms(result.aids.usage)}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{fixTerms(result.aids.recommendation)}</div>}</div>)}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
+        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {fixTerms(a)}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{fixTerms(result.aids.usage)}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{fixTerms(result.aids.recommendation)}</div>}</div>)}{result.gait.speed&&<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>歩行速度</div><div style={{fontSize:28,fontWeight:900,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{result.gait.speed}</div>{result.gait.speedComment&&<div style={{marginTop:8,fontSize:13,color:C.text,lineHeight:1.6}}>{result.gait.speedComment}</div>}</div>}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
         {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
         {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
