@@ -122,6 +122,29 @@ async function getMyRole(facilityId, email) {
   if (error || !data || data.length === 0) return { role: null, facilityId: null };
   return { role: data[0].role, facilityId: data[0].facility_id };
 }
+async function checkLoginLock(email) {
+  const { data, error } = await supabase.from("login_attempts").select("*").eq("email", email);
+  if (error || !data || data.length === 0) return { locked: false, remainingSeconds: 0 };
+  const record = data[0];
+  if (record.locked_until && new Date(record.locked_until) > new Date()) {
+    const remainingSeconds = Math.ceil((new Date(record.locked_until) - new Date()) / 1000);
+    return { locked: true, remainingSeconds };
+  }
+  return { locked: false, remainingSeconds: 0 };
+}
+
+async function recordLoginFailure(email) {
+  const { data } = await supabase.from("login_attempts").select("*").eq("email", email);
+  const current = data && data.length > 0 ? data[0].failed_count : 0;
+  const newCount = current + 1;
+  const lockedUntil = newCount >= 5 ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null;
+  await supabase.from("login_attempts").upsert({ email, failed_count: newCount, locked_until: lockedUntil }, { onConflict: "email" });
+  return { newCount, locked: newCount >= 5 };
+}
+
+async function resetLoginFailure(email) {
+  await supabase.from("login_attempts").upsert({ email, failed_count: 0, locked_until: null }, { onConflict: "email" });
+}
 
 function toBase64(canvas) { return canvas.toDataURL("image/jpeg", 0.75).split(",")[1]; }
 function formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,"0")}:${Math.floor(s%60).toString().padStart(2,"0")}`; }
@@ -801,6 +824,15 @@ const DeleteDialog = () => {
     const handleAuth = async () => {
       if (!authEmail.trim()||!authPassword.trim()) return;
       setAuthLoading(true); setAuthError(null);
+      if (authMode==="login") {
+        const lockStatus = await checkLoginLock(authEmail.trim());
+        if (lockStatus.locked) {
+          const minutes = Math.ceil(lockStatus.remainingSeconds / 60);
+          setAuthError(`ログイン試行回数が多いため、一時的にロックされています。約${minutes}分後に再度お試しください。`);
+          setAuthLoading(false);
+          return;
+        }
+      }
       let error;
       if (authMode==="signup") {
         const res = await supabase.auth.signUp({ email:authEmail, password:authPassword });
@@ -809,6 +841,20 @@ const DeleteDialog = () => {
       } else {
         const res = await supabase.auth.signInWithPassword({ email:authEmail, password:authPassword });
         error = res.error;
+        if (!error) {
+          await resetLoginFailure(authEmail.trim());
+        } else {
+          const failResult = await recordLoginFailure(authEmail.trim());
+          if (failResult.locked) {
+            setAuthError("ログイン試行回数が5回を超えたため、30分間ロックされました。");
+            setAuthLoading(false);
+            return;
+          } else {
+            setAuthError(`メールアドレスまたはパスワードが間違っています。（あと${5 - failResult.newCount}回失敗するとロックされます）`);
+            setAuthLoading(false);
+            return;
+          }
+        }
       }
       if (error) setAuthError(error.message);
       setAuthLoading(false);
