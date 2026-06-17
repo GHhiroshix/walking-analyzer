@@ -115,12 +115,29 @@ async function deleteStaff(staffId) {
   if (error) { console.error(error); return false; }
   return true;
 }
+async function getPatientNotes(patientId) {
+  const { data, error } = await supabase.from("patient_notes").select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function createPatientNote(patientId, facilityId, authorName, content) {
+  const { data, error } = await supabase.from("patient_notes").insert({ patient_id: patientId, facility_id: facilityId, author_name: authorName, content }).select().single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function deletePatientNote(noteId) {
+  const { error } = await supabase.from("patient_notes").delete().eq("id", noteId);
+  if (error) { console.error(error); return false; }
+  return true;
+}
 
 async function getMyRole(facilityId, email) {
-  const { data, error } = await supabase.from("staffs").select("role, facility_id").eq("email", email);
+  const { data, error } = await supabase.from("staffs").select("role, facility_id, name").eq("email", email);
   console.log("getMyRole data:", data, "error:", error);
-  if (error || !data || data.length === 0) return { role: null, facilityId: null };
-  return { role: data[0].role, facilityId: data[0].facility_id };
+  if (error || !data || data.length === 0) return { role: null, facilityId: null, name: null };
+  return { role: data[0].role, facilityId: data[0].facility_id, name: data[0].name };
 }
 async function checkLoginLock(email) {
   const { data, error } = await supabase.from("login_attempts").select("*").eq("email", email);
@@ -559,6 +576,9 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [historyPatient, setHistoryPatient] = useState(null);
   const [historyDetail, setHistoryDetail] = useState(null);
+  const [patientNotes, setPatientNotes] = useState([]);
+  const [noteInput, setNoteInput] = useState("");
+  const [myName, setMyName] = useState("");
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
   const tapTargetXRef = useRef(null);
@@ -600,11 +620,13 @@ const loadMyRole = async (facilityId, email) => {
   setMyRole(result.role);
   if (result.role === "staff" && result.facilityId) {
     setEffectiveFacilityId(result.facilityId);
+    setMyName(result.name || "スタッフ");
     await loadPatients(result.facilityId);
     await loadStaffs(result.facilityId);
     await loadFacilitySettings(result.facilityId);
   } else {
     setEffectiveFacilityId(facilityId);
+    setMyName(result.name || "管理者");
   }
 };
 
@@ -973,6 +995,43 @@ const DeleteDialog = () => {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
+<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+          <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <input
+              value={noteInput}
+              onChange={e=>setNoteInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229&&noteInput.trim()){(async()=>{await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);})();}}}
+              placeholder="メモを入力（例：午前は機嫌良く歩けていました）"
+              style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+            />
+            <button
+              onClick={async()=>{if(!noteInput.trim())return;await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);}}
+              disabled={!noteInput.trim()}
+              style={{padding:"10px 16px",background:noteInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:noteInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:noteInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}
+            >追加</button>
+          </div>
+          {patientNotes.length===0?(
+            <div style={{textAlign:"center",color:C.muted,fontSize:12,padding:"12px"}}>まだメモはありません</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {patientNotes.map(note=>(
+                <div key={note.id} style={{background:C.surface,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${C.accent}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,color:C.text,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{note.content}</div>
+                      <div style={{fontSize:10,color:C.muted,marginTop:6}}>{note.author_name||"スタッフ"} ・ {formatDate(note.created_at)}</div>
+                    </div>
+                    <button
+                      onClick={async()=>{if(!window.confirm("このメモを削除しますか？"))return;await deletePatientNote(note.id);const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);}}
+                      style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14,flexShrink:0,padding:0}}
+                    >×</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
             <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
           </div>
         </div>
@@ -1085,7 +1144,7 @@ const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;cons
 const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement >= noMeasurementDays;
                   return (
                     <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:isOverdue?`rgba(245,166,35,0.08)`:C.surface,border:`1.5px solid ${isAlert?C.red:isOverdue?C.amber:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");getPatientNotes(p.id).then(setPatientNotes);}}>
                         <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                         <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
                           <div style={{fontWeight:700,fontSize:15,color:C.text}}>{p.name}</div>
