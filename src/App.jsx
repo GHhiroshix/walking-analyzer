@@ -117,10 +117,10 @@ async function deleteStaff(staffId) {
 }
 
 async function getMyRole(facilityId, email) {
-  const { data, error } = await supabase.from("staffs").select("role").eq("email", email);
+  const { data, error } = await supabase.from("staffs").select("role, facility_id").eq("email", email);
   console.log("getMyRole data:", data, "error:", error);
-  if (error || !data || data.length === 0) return null;
-  return data[0].role;
+  if (error || !data || data.length === 0) return { role: null, facilityId: null };
+  return { role: data[0].role, facilityId: data[0].facility_id };
 }
 
 function toBase64(canvas) { return canvas.toDataURL("image/jpeg", 0.75).split(",")[1]; }
@@ -495,6 +495,7 @@ const toggleTheme = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [session, setSession] = useState(null);
   const [myRole, setMyRole] = useState(null);
+  const [effectiveFacilityId, setEffectiveFacilityId] = useState(null);
   const [staffs, setStaffs] = useState([]);
   const [staffNameInput, setStaffNameInput] = useState("");
   const [staffEmailInput, setStaffEmailInput] = useState("");
@@ -561,9 +562,17 @@ const loadFacilitySettings = async (facilityId) => {
 };
 
 const loadMyRole = async (facilityId, email) => {
-  const role = await getMyRole(facilityId, email);
-  console.log("myRole取得結果:", role, "email:", email, "facilityId:", facilityId);
-  setMyRole(role);
+  const result = await getMyRole(facilityId, email);
+  console.log("myRole取得結果:", result.role, "email:", email, "facilityId:", facilityId);
+  setMyRole(result.role);
+  if (result.role === "staff" && result.facilityId) {
+    setEffectiveFacilityId(result.facilityId);
+    await loadPatients(result.facilityId);
+    await loadStaffs(result.facilityId);
+    await loadFacilitySettings(result.facilityId);
+  } else {
+    setEffectiveFacilityId(facilityId);
+  }
 };
 
   
@@ -578,8 +587,7 @@ const loadMyRole = async (facilityId, email) => {
     if (deleteConfirm.type==="patient") { await deletePatient(deleteConfirm.id); }
     else { await deletePatientHistory(deleteConfirm.id); }
     setDeleteConfirm(null);
-    if (session) await loadPatients(session.user.id);
-  };
+    if (session) await loadPatients(effectiveFacilityId);};
 
   const wrap = {minHeight:"100vh",background:C.bg,fontFamily:C.font,color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px",position:"relative"};
   const maxW = {width:"100%",maxWidth:520,position:"relative",zIndex:1};
@@ -687,7 +695,7 @@ const loadMyRole = async (facilityId, email) => {
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     setVideoUrl(null); setFrames([]); setResult(null);
     setError(null); setProgress(0); setActiveTab("gait"); setCurrentFrame(0);
-    if (session) await loadPatients(session.user.id);
+    if (session) await loadPatients(effectiveFacilityId);
   };
 
   const StaffManager = () => {
@@ -940,7 +948,7 @@ const DeleteDialog = () => {
                         const newHist = await getPatientHistory(historyPatient.id);
                         const updated = {...historyPatient, history: newHist};
                         setHistoryPatient(updated);
-                        if(session) await loadPatients(session.user.id);
+                        if(session) await loadPatients(effectiveFacilityId);
                       }}
                       style={{padding:"5px 10px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:6,color:C.red,fontSize:10,cursor:"pointer",fontFamily:C.font}}
                     >🗑️ この解析結果を削除</button>
@@ -963,10 +971,10 @@ const DeleteDialog = () => {
         p.name === nameInput.trim() && p.furigana === furiganaInput.trim()
       );
       if (dup) { setError(`「${nameInput.trim()}」さんはすでに登録されています。`); return; }
-      const newPatient = await createPatient(session.user.id, nameInput.trim(), furiganaInput.trim());
+      const newPatient = await createPatient(effectiveFacilityId, nameInput.trim(), furiganaInput.trim());
       if (!newPatient) { setError("登録に失敗しました。再度お試しください。"); return; }
       setPatientId(newPatient.id); setPatientName(newPatient.name); setPatientHistory([]); setNameInput(""); setFuriganaInput(""); setSearchQuery("");
-      await loadPatients(session.user.id); setPhase("upload");
+      await loadPatients(effectiveFacilityId); setPhase("upload");
     };
 
     // 検索フィルター（名前・ふりがな両方）
