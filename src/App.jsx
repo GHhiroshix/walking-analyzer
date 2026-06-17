@@ -88,9 +88,9 @@ async function deleteSingleHistory(analysisId) {
   return true;
 }
 async function getFacilitySettings(facilityId) {
-  const { data, error } = await supabase.from("facility_settings").select("*").eq("facility_id", facilityId).single();
-  if (error) return { alert_threshold: 5, no_measurement_days: 30 };
-  return data;
+  const { data, error } = await supabase.from("facility_settings").select("*").eq("facility_id", facilityId);
+  if (error || !data || data.length === 0) return { alert_threshold: 5, no_measurement_days: 30 };
+  return data[0];
 }
 
 async function upsertFacilitySettings(facilityId, alertThreshold, noMeasurementDays) {
