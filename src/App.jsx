@@ -89,12 +89,12 @@ async function deleteSingleHistory(analysisId) {
 }
 async function getFacilitySettings(facilityId) {
   const { data, error } = await supabase.from("facility_settings").select("*").eq("facility_id", facilityId).single();
-  if (error) return { alert_threshold: 5 };
+  if (error) return { alert_threshold: 5, no_measurement_days: 30 };
   return data;
 }
 
-async function upsertFacilitySettings(facilityId, alertThreshold) {
-  const { error } = await supabase.from("facility_settings").upsert({ facility_id: facilityId, alert_threshold: alertThreshold, updated_at: new Date().toISOString() }, { onConflict: "facility_id" });
+async function upsertFacilitySettings(facilityId, alertThreshold, noMeasurementDays) {
+  const { error } = await supabase.from("facility_settings").upsert({ facility_id: facilityId, alert_threshold: alertThreshold, no_measurement_days: noMeasurementDays, updated_at: new Date().toISOString() }, { onConflict: "facility_id" });
   if (error) console.error(error);
 }
 
@@ -501,6 +501,7 @@ const toggleTheme = () => {
   const [staffRoleInput, setStaffRoleInput] = useState("staff");
   const [showStaffManager, setShowStaffManager] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(5);
+  const [noMeasurementDays, setNoMeasurementDays] = useState(30);
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
   const [patients, setPatients] = useState([]);
   const [patientId, setPatientId] = useState(null);
@@ -556,6 +557,7 @@ const loadStaffs = async (facilityId) => {
 const loadFacilitySettings = async (facilityId) => {
   const settings = await getFacilitySettings(facilityId);
   setAlertThreshold(settings.alert_threshold || 5);
+  setNoMeasurementDays(settings.no_measurement_days || 30);
 };
 
 const loadMyRole = async (facilityId, email) => {
@@ -723,7 +725,12 @@ const loadMyRole = async (facilityId, email) => {
     <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
     <span>点以上下がったら赤くアラート</span>
   </div>
-  <button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>
+  <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8}}>
+    <span>測定が</span>
+    <input type="number" min="1" max="365" value={noMeasurementDays} onChange={e=>setNoMeasurementDays(Number(e.target.value))} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+    <span>日以上ないとアラート</span>
+  </div>
+  <button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold, noMeasurementDays); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>
 </div>}
         <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
         {staffs.length===0?(
@@ -1011,9 +1018,10 @@ const DeleteDialog = () => {
                 {filtered.map(p=>{
                   const hist=p.history||[], last=hist[0];
 const prev=hist[1];
-const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;
+const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;const daysSinceLastMeasurement = last ? Math.floor((new Date() - new Date(last.date)) / (1000*60*60*24)) : null;
+const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement >= noMeasurementDays;
                   return (
-                    <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:C.surface,border:`1.5px solid ${isAlert?C.red:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
+                    <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:isOverdue?`rgba(245,166,35,0.08)`:C.surface,border:`1.5px solid ${isAlert?C.red:isOverdue?C.amber:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
                       <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");}}>
                         <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                         <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
