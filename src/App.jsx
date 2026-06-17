@@ -267,6 +267,15 @@ function buildPrintHTML({ patientName, measureNo, dateStr, result }) {
     </div>`;
   }
 
+  // 歩行速度
+  if (result.gait && result.gait.speed) {
+    html += `<div class="section" style="background:#f0faf4;border:1px solid #a7f3d0;">
+      <div class="label">🚶 歩行速度</div>
+      <div style="font-size:32px;font-weight:900;color:#1a6640;font-family:monospace;margin-bottom:8px;">${result.gait.speed}</div>
+      ${result.gait.speedComment ? `<div style="font-size:14px;color:#333;line-height:1.7;">${result.gait.speedComment}</div>` : ""}
+    </div>`;
+  }
+
   // 歩行指標
   if (result.gait) {
     html += `<div class="section">
