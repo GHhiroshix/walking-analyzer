@@ -7,7 +7,8 @@ const LIGHT = {
   bgSolid: "#f5f0e8",
   surface: "rgba(0,0,0,0.06)",
   panel: "rgba(0,0,0,0.04)",
-  border: "rgba(0,0,0,0.10)",
+  border: "#000000",
+  borderW: "2.5px",
   accent: "#0a7a5a", accentDim: "#086648", blue: "#1a5fb4",
   amber: "#b06e00", red: "#b52040", text: "#2d2416",
   muted: "rgba(45,36,22,0.50)", mutedLight: "rgba(45,36,22,0.70)",
@@ -20,6 +21,7 @@ const DARK = {
   surface: "rgba(255,255,255,0.06)",
   panel: "rgba(255,255,255,0.04)",
   border: "rgba(255,255,255,0.18)",
+  borderW: "1px",
   accent: "#39e0b0", accentDim: "#1faa80", blue: "#4da6ff",
   amber: "#f5a623", red: "#ff4d6d", text: "#ddeeff",
   muted: "rgba(255,255,255,0.56)", mutedLight: "rgba(255,255,255,0.74)",
@@ -498,7 +500,7 @@ function GaitMetricsHistoryChart({ history }) {
 function ComparePanel({ current, prev }) {
   if (!prev) return null;
   const diff = scoreDiff(current.score, prev.score);
-  return (<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>前回との比較 — {formatDate(prev.date)}</div><div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}><div style={{textAlign:"center"}}><div style={{fontSize:11,color:C.muted,marginBottom:4}}>前回</div><div style={{fontSize:28,fontWeight:900,color:C.mutedLight,fontFamily:"'Space Mono',monospace"}}>{prev.score}</div></div><div style={{flex:1,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:diff.color,fontFamily:"'Space Mono',monospace"}}>{diff.label}</div><div style={{fontSize:10,color:C.muted}}>変化</div></div><div style={{textAlign:"center"}}><div style={{fontSize:11,color:C.muted,marginBottom:4}}>今回</div><div style={{fontSize:28,fontWeight:900,color:diff.color,fontFamily:"'Space Mono',monospace"}}>{current.score}</div></div></div>{current.progress&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${C.blue}`,fontSize:12,color:C.text,lineHeight:1.7}}>💬 {current.progress}</div>}</div>);
+  return (<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>前回との比較 — {formatDate(prev.date)}</div><div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}><div style={{textAlign:"center"}}><div style={{fontSize:11,color:C.muted,marginBottom:4}}>前回</div><div style={{fontSize:28,fontWeight:900,color:C.mutedLight,fontFamily:"'Space Mono',monospace"}}>{prev.score}</div></div><div style={{flex:1,textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:diff.color,fontFamily:"'Space Mono',monospace"}}>{diff.label}</div><div style={{fontSize:10,color:C.muted}}>変化</div></div><div style={{textAlign:"center"}}><div style={{fontSize:11,color:C.muted,marginBottom:4}}>今回</div><div style={{fontSize:28,fontWeight:900,color:diff.color,fontFamily:"'Space Mono',monospace"}}>{current.score}</div></div></div>{current.progress&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",borderLeft:`3px solid ${C.blue}`,fontSize:12,color:C.text,lineHeight:1.7}}>💬 {current.progress}</div>}</div>);
 }
 function SeverityDot({ s }) {
   const col=s==="high"?C.red:s==="medium"?C.amber:C.accent;
@@ -508,7 +510,7 @@ function ExerciseCard({ ex, idx }) {
   const [open,setOpen]=useState(false);
   const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
   const col=cols[idx%cols.length];
-  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🏃</div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div>{open&&(<div style={{marginTop:14,borderTop:`1px solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
+  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🏃</div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
 }
 
 function GaitRadarChart({ gait }) {
@@ -823,7 +825,7 @@ const loadMyRole = async (facilityId, email) => {
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {staffs.map(s=>(
-              <div key={s.id} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div key={s.id} style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div>
                   <div style={{fontWeight:700,fontSize:13,color:C.text}}>{s.name}</div>
                   <div style={{fontSize:11,color:C.muted}}>{s.email}</div>
@@ -846,7 +848,7 @@ const DeleteDialog = () => {
     if (!deleteConfirm) return null;
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
-        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:340}}>
+        <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:340}}>
           <div style={{fontSize:18,marginBottom:12,textAlign:"center"}}>{deleteConfirm.type==="patient"?"🗑️":"📋"}</div>
           <div style={{fontWeight:700,fontSize:15,marginBottom:8,textAlign:"center",color:C.text}}>{deleteConfirm.type==="patient"?"利用者を削除しますか？":"履歴を削除しますか？"}</div>
           <div style={{fontSize:13,color:C.muted,textAlign:"center",marginBottom:20,lineHeight:1.6}}>
@@ -855,7 +857,7 @@ const DeleteDialog = () => {
             <br/>この操作は取り消せません。
           </div>
           <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
+            <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
             <button onClick={handleDeleteConfirm} style={{flex:1,padding:"11px",background:C.red,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>削除する</button>
           </div>
         </div>
@@ -912,8 +914,8 @@ const DeleteDialog = () => {
         </div>
         {authError&&<div style={{background:authError.includes("確認メール")?"rgba(57,224,176,0.12)":"rgba(255,77,109,0.12)",border:`1px solid ${authError.includes("確認メール")?"rgba(57,224,176,0.3)":"rgba(255,77,109,0.3)"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:authError.includes("確認メール")?C.accent:C.red}}>{authError}</div>}
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-          <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:"rgba(255,255,255,0.07)",border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
-          <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} placeholder="パスワード（8文字以上）" type="password" style={{background:"rgba(255,255,255,0.07)",border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
+          <input value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:"rgba(255,255,255,0.07)",border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
+          <input value={authPassword} onChange={e=>setAuthPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAuth()} placeholder="パスワード（8文字以上）" type="password" style={{background:"rgba(255,255,255,0.07)",border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"13px 14px",color:C.text,fontSize:14,fontFamily:C.font,outline:"none"}}/>
         </div>
         <button onClick={handleAuth} disabled={authLoading||!authEmail.trim()||!authPassword.trim()} style={{width:"100%",padding:"14px",background:authEmail.trim()&&authPassword.trim()?`linear-gradient(135deg,${C.accent},${C.accentDim})`:"rgba(255,255,255,0.1)",border:"none",borderRadius:12,color:authEmail.trim()&&authPassword.trim()?C.bgSolid:C.muted,fontSize:15,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,marginBottom:14,boxShadow:authEmail.trim()&&authPassword.trim()?`0 4px 24px rgba(57,224,176,0.3)`:"none"}}>
           {authLoading?"処理中...":authMode==="login"?"ログイン →":"アカウントを作成 →"}
@@ -940,8 +942,8 @@ const DeleteDialog = () => {
       <div style={wrap}><GlassOrbs/><StaffManager/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
           <div style={{display:"flex",gap:8}}>
-  {myRole==="admin"&&<button onClick={()=>{console.log("クリック！", showStaffManager); setShowStaffManager(true); console.log("セット後");}} style={{background:"none",border:`1px solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
-  <button onClick={handleLogout} style={{background:"none",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
+  {myRole==="admin"&&<button onClick={()=>{console.log("クリック！", showStaffManager); setShowStaffManager(true); console.log("セット後");}} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
+  <button onClick={handleLogout} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
 </div>
         </div>
         <div style={{paddingTop:24,marginBottom:28,textAlign:"center"}}>
@@ -951,7 +953,7 @@ const DeleteDialog = () => {
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {ITEMS.map(({key,label,note,imp})=>{ const checked=checks[key]; return (
-            <div key={key} onClick={()=>setChecks(p=>({...p,[key]:!p[key]}))} style={{display:"flex",gap:12,alignItems:"flex-start",background:checked?C.accent+"0a":C.surface,border:`1.5px solid ${checked?C.accent+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
+            <div key={key} onClick={()=>setChecks(p=>({...p,[key]:!p[key]}))} style={{display:"flex",gap:12,alignItems:"flex-start",background:checked?C.accent+"0a":C.surface,border:`${C.borderW} solid ${checked?C.accent+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
               <div style={{width:22,height:22,borderRadius:6,flexShrink:0,marginTop:1,border:`2px solid ${checked?C.accent:imp?C.amber+"88":C.muted}`,background:checked?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
                 {checked&&<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke={C.bgSolid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </div>
@@ -959,7 +961,7 @@ const DeleteDialog = () => {
             </div>
           );})}
         </div>
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:12,color:C.muted,lineHeight:1.7}}>
+        <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:12,color:C.muted,lineHeight:1.7}}>
           📄 Anthropicのプライバシーポリシー：<a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{color:C.accent,marginLeft:4}}>anthropic.com/privacy</a>
         </div>
         <button onClick={()=>allChecked&&setPhase("userSelect")} disabled={!allChecked} style={{width:"100%",padding:"15px",background:allChecked?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:allChecked?C.bgSolid:C.muted,fontSize:15,fontWeight:700,cursor:allChecked?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:C.font,boxShadow:allChecked?`0 4px 20px ${C.accent}33`:"none"}}>
@@ -989,17 +991,17 @@ const DeleteDialog = () => {
           <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{formatDate(h.date)}</div>
           <h2 style={{fontSize:20,fontWeight:900,margin:0,color:C.text}}>{h.summary}</h2>
         </div>
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"24px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:20,padding:"24px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
           <ScoreArc score={h.score}/>
           <div style={{fontWeight:900,fontSize:15,marginTop:4,textAlign:"center",color:C.text}}>{h.summary}</div>
         </div>
-        {h.gait&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={h.gait}/></div>)}
-        {h.issues&&h.issues.length>0&&(<div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>課題</div><div style={{display:"flex",flexDirection:"column",gap:8}}>{h.issues.map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14,color:C.text}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div></div>)}
+        {h.gait&&(<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px 18px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={h.gait}/></div>)}
+        {h.issues&&h.issues.length>0&&(<div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>課題</div><div style={{display:"flex",flexDirection:"column",gap:8}}>{h.issues.map((issue,i)=>(<div key={i} style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14,color:C.text}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div></div>)}
         {h.exercises&&h.exercises.length>0&&(<div style={{marginBottom:12}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>体操メニュー</div>{h.exercises.map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
         <div style={{display:"flex",gap:10,marginTop:4}}>
-          <button onClick={()=>setHistoryDetail(null)} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.mutedLight,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>← 履歴一覧</button>
+          <button onClick={()=>setHistoryDetail(null)} style={{flex:1,padding:"13px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,color:C.mutedLight,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>← 履歴一覧</button>
           <button onClick={handleHistoryPrint} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>🖨️ 印刷</button>
-          <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{flex:1,padding:"13px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
+          <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(historyPatient.history||[]);setPhase("upload");}} style={{flex:1,padding:"13px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
         </div>
       </div></div>
     );
@@ -1018,10 +1020,10 @@ const DeleteDialog = () => {
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
             {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
-            {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
+            {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
           </div>
         </div>
-        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+        <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input
@@ -1029,7 +1031,7 @@ const DeleteDialog = () => {
               onChange={e=>setNoteInput(e.target.value)}
               onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229&&noteInput.trim()){(async()=>{await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);})();}}}
               placeholder="メモを入力（例：午前は機嫌良く歩けていました）"
-              style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+              style={{flex:1,background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
             />
             <button
               onClick={async()=>{if(!noteInput.trim())return;await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);}}
@@ -1059,13 +1061,13 @@ const DeleteDialog = () => {
         　)}
         </div>
         {hist.length===0?(
-          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
+          <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {hist.map((h,i)=>{
               const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
               return (
-                <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
+                <div key={i} style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
                   <div onClick={()=>setHistoryDetail(h)} style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
                     <div style={{width:52,height:52,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <span style={{fontSize:20,fontWeight:900,color:col,fontFamily:"'Space Mono',monospace",lineHeight:1}}>{h.score}</span>
@@ -1077,7 +1079,7 @@ const DeleteDialog = () => {
                     </div>
                     <div style={{color:C.muted,fontSize:16}}>›</div>
                   </div>
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`${C.borderW} solid ${C.border}`}}>
                     <button
                       onClick={async()=>{
                         if(!window.confirm(`${formatDate(h.date)}の解析結果を削除しますか？`)) return;
@@ -1140,7 +1142,7 @@ const DeleteDialog = () => {
                 value={searchQuery}
                 onChange={e=>{setSearchQuery(e.target.value);setError(null);}}
                 placeholder="名前・ふりがなで検索..."
-                style={{width:"100%",boxSizing:"border-box",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 12px 11px 36px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+                style={{width:"100%",boxSizing:"border-box",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"11px 12px 11px 36px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
               />
               {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1}}>×</button>}
             </div>
@@ -1155,7 +1157,7 @@ const DeleteDialog = () => {
               {searchQuery&&<span style={{marginLeft:8,color:C.accent}}>{filtered.length}件ヒット</span>}
             </div>
             {filtered.length===0?(
-              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"20px",textAlign:"center",color:C.muted,fontSize:13}}>
+              <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"20px",textAlign:"center",color:C.muted,fontSize:13}}>
                 「{searchQuery}」に一致する利用者が見つかりません
               </div>
             ):(
@@ -1166,7 +1168,7 @@ const prev=hist[1];
 const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;const daysSinceLastMeasurement = last ? Math.floor((new Date() - new Date(last.date)) / (1000*60*60*24)) : null;
 const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement >= noMeasurementDays;
                   return (
-                    <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:isOverdue?`rgba(245,166,35,0.08)`:C.surface,border:`1.5px solid ${isAlert?C.red:isOverdue?C.amber:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
+                    <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:isOverdue?`rgba(245,166,35,0.08)`:C.surface,border:`${C.borderW} solid ${isAlert?C.red:isOverdue?C.amber:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
                       <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");getPatientNotes(p.id).then(setPatientNotes);}}>
                         <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                         <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
@@ -1176,7 +1178,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
                         </div>
                         <div style={{color:C.muted,fontSize:16,cursor:"pointer"}}>›</div>
                       </div>
-                      <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`${C.borderW} solid ${C.border}`}}>
                         {myRole==="admin"&&<button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"history"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.amber}44`,borderRadius:8,color:C.amber,fontSize:11,cursor:"pointer",fontFamily:C.font}}>📋 履歴を削除</button>}
 {myRole==="admin"&&<button onClick={e=>{e.stopPropagation();setDeleteConfirm({id:p.id,name:p.name,type:"patient"});}} style={{flex:1,padding:"7px",background:"transparent",border:`1px solid ${C.red}44`,borderRadius:8,color:C.red,fontSize:11,cursor:"pointer",fontFamily:C.font}}>🗑️ 利用者を削除</button>}
                       </div>
@@ -1189,24 +1191,24 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
         )}
 
         {/* 新規登録 */}
-        <div style={{background:C.amber+"12",border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"16px",marginBottom:16}}>
+        <div style={{background:C.amber+"12",border:`${C.borderW} solid ${C.amber}44`,borderRadius:12,padding:"16px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.amber,letterSpacing:2,marginBottom:12,fontWeight:700}}>⚡ クイック解析（匿名・履歴なし）</div>
           <div style={{fontSize:12,color:C.mutedLight,marginBottom:12,lineHeight:1.7}}>利用者登録不要で1回だけ解析できます。結果はDBに保存されません。</div>
           <button onClick={()=>{setIsQuick(true);setPatientId(null);setPatientName("匿名");setPatientHistory([]);setPhase("upload");}} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${C.amber},#e8821a)`,border:"none",borderRadius:8,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>⚡ クイック解析を開始</button>
         </div>
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
+        <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"16px"}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>新規登録</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <input
               value={furiganaInput}
               onChange={e=>setFuriganaInput(e.target.value)}
               placeholder="ふりがな（例：たなかよしこ）"
-              style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+              style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
             />
 <select
               value={ageGroupInput}
               onChange={e=>setAgeGroupInput(e.target.value)}
-              style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+              style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
             >
               <option value="">年代を選択（任意）</option>
               <option value="60代未満">60代未満</option>
@@ -1221,7 +1223,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
                 onChange={e=>setNameInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)addNew()}}
                 placeholder="お名前（例：田中様）"
-                style={{flex:1,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+                style={{flex:1,background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
               />
               <button
                 onClick={addNew}
@@ -1258,7 +1260,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
         ):(
           <div>
             <div style={{position:"relative",width:"100%"}}>
-            <video ref={videoRef} src={videoUrl} controls playsInline style={{width:"100%",borderRadius:12,background:"#000",maxHeight:320,border:`1px solid ${C.border}`}}/>
+            <video ref={videoRef} src={videoUrl} controls playsInline style={{width:"100%",borderRadius:12,background:"#000",maxHeight:320,border:`${C.borderW} solid ${C.border}`}}/>
             {showTapGuide&&(
               <div
                 onClick={e=>{
@@ -1286,17 +1288,17 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
               </div>
             )}
           </div>
-            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
+            <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginTop:12}}>
               <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10,fontWeight:700}}>解析前チェック</div>
               {[["スマホを固定して撮影した（横に動かして追いかけていない）",true],["真横から全身が映っている",true],["明るさは十分で影が少ない",false]].map(([label,imp])=>(
                 <div key={label} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:7}}>
-                  <span style={{width:16,height:16,borderRadius:4,marginTop:1,flexShrink:0,border:`1.5px solid ${imp?C.amber:C.border}`}}/>
+                  <span style={{width:16,height:16,borderRadius:4,marginTop:1,flexShrink:0,border:`${C.borderW} solid ${imp?C.amber:C.border}`}}/>
                   <span style={{fontSize:12,color:imp?C.text:C.mutedLight,fontWeight:imp?600:400,lineHeight:1.5}}>{imp&&<span style={{color:C.amber,marginRight:3}}>★</span>}{label}</span>
                 </div>
               ))}
             </div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
+              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
               {!showTapGuide?(
                 <button onClick={()=>setShowTapGuide(true)} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>👆 被解析者を選択 →</button>
               ):(
@@ -1309,7 +1311,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
         )}
         <div style={{marginTop:24}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,fontWeight:700,marginBottom:10}}>📋 撮影ガイド</div>
-          <div style={{background:C.amber+"12",border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+          <div style={{background:C.amber+"12",border:`${C.borderW} solid ${C.amber}44`,borderRadius:12,padding:"12px 14px",marginBottom:10}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:18,flexShrink:0}}>⚠️</span><div style={{fontSize:12,color:C.mutedLight,lineHeight:1.7}}>スマホを横に動かしながら撮ると解析精度が下がります。<br/><span style={{color:C.text,fontWeight:600}}>スマホを固定して、人が画面を横切るのを待つ</span>のがコツです。</div></div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1359,34 +1361,34 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
           <div style={{display:"flex",gap:6}}>
             <button
               onClick={()=>{setHistoryPatient({id:patientId,name:patientName,history:patientHistory});setPhase("historyList");}}
-              style={{padding:"6px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
+              style={{padding:"6px 12px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
             >📋 測定履歴</button>
             <button
               onClick={()=>{setPhase("userSelect");}}
-              style={{padding:"6px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
+              style={{padding:"6px 12px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
             >👤 利用者選択</button>
           </div>
         </div>
 
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"28px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:20,padding:"28px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
           <ScoreArc score={result.score}/>
           <div style={{fontWeight:900,fontSize:17,marginTop:4,textAlign:"center"}}>{result.summary}</div>
           {patientHistory.length>1&&<ScoreHistoryChart history={patientHistory}/>}
         </div>
-        {frames.length>0&&(<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}}>解析フレーム</div><FrameStrip frames={frames} current={currentFrame} onSelect={setCurrentFrame}/><img src={`data:image/jpeg;base64,${frames[currentFrame]?.b64}`} alt="selected" style={{width:"100%",borderRadius:8,marginTop:4,border:`1px solid ${C.border}`}}/></div>)}
-        <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:4}}>
+        {frames.length>0&&(<div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"12px",marginBottom:12}}><div style={{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}}>解析フレーム</div><FrameStrip frames={frames} current={currentFrame} onSelect={setCurrentFrame}/><img src={`data:image/jpeg;base64,${frames[currentFrame]?.b64}`} alt="selected" style={{width:"100%",borderRadius:8,marginTop:4,border:`${C.borderW} solid ${C.border}`}}/></div>)}
+        <div style={{display:"flex",gap:4,marginBottom:12,background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:4}}>
           {tabs.map(t=>(<button key={t.id} onClick={()=>setActiveTab(t.id)} style={{flex:1,padding:"8px 2px",background:activeTab===t.id?C.accent:"transparent",border:"none",borderRadius:8,color:activeTab===t.id?C.bgSolid:C.muted,fontSize:10,fontWeight:700,cursor:"pointer",transition:"all 0.2s",fontFamily:C.font,lineHeight:1.4}}>{t.icon}<br/>{t.label}</button>))}
         </div>
         {activeTab==="compare"&&(<div><ComparePanel current={result} prev={prevRecord}/>
-        {patientHistory.length>1&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:4}}>歩行指標の推移</div><GaitMetricsHistoryChart history={patientHistory}/></div>)}{patientHistory.length>2&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`1px solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
-        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {fixTerms(a)}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{fixTerms(result.aids.usage)}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{fixTerms(result.aids.recommendation)}</div>}</div>)}{result.gait.speed&&<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>歩行速度</div><div style={{fontSize:28,fontWeight:900,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{result.gait.speed}</div>{result.gait.speedComment&&<div style={{marginTop:8,fontSize:13,color:C.text,lineHeight:1.6}}>{result.gait.speedComment}</div>}</div>}<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
-        {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
-        {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
-        {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
+        {patientHistory.length>1&&(<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:4}}>歩行指標の推移</div><GaitMetricsHistoryChart history={patientHistory}/></div>)}{patientHistory.length>2&&(<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定履歴</div>{patientHistory.slice(0,5).map((h,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(patientHistory.length,5)-1?`${C.borderW} solid ${C.border}`:"none"}}><div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div><div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div><div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div></div>))}</div>)}</div>)}
+        {activeTab==="gait"&&result.gait&&(<div>{result.aids&&(<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>補助具・手すり</div><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:result.aids.usage||result.aids.recommendation?12:0}}>{result.aids.detected&&result.aids.detected.length>0?result.aids.detected.map((a,i)=><span key={i} style={{background:C.blue+"1a",border:`1px solid ${C.blue}44`,color:C.blue,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>🦯 {fixTerms(a)}</span>):<span style={{background:C.accent+"1a",border:`1px solid ${C.accent}33`,color:C.accent,borderRadius:100,padding:"4px 12px",fontSize:12,fontWeight:700}}>✓ 補助具なし</span>}</div>{result.aids.usage&&<div style={{background:C.surface,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,marginBottom:8,borderLeft:`3px solid ${C.blue}`}}><span style={{color:C.mutedLight,fontSize:11,display:"block",marginBottom:3}}>使い方の評価</span>{fixTerms(result.aids.usage)}</div>}{result.aids.recommendation&&<div style={{background:C.amber+"0f",borderRadius:8,padding:"10px 12px",fontSize:12,color:C.text,lineHeight:1.6,borderLeft:`3px solid ${C.amber}`}}><span style={{color:C.amber,fontSize:11,display:"block",marginBottom:3}}>💡 アドバイス</span>{fixTerms(result.aids.recommendation)}</div>}</div>)}{result.gait.speed&&<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:10}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>歩行速度</div><div style={{fontSize:28,fontWeight:900,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{result.gait.speed}</div>{result.gait.speedComment&&<div style={{marginTop:8,fontSize:13,color:C.text,lineHeight:1.6}}>{result.gait.speedComment}</div>}</div>}<div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px 18px"}}><div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>GAIT METRICS</div><GaitRadarChart gait={result.gait}/></div></div>)}
+        {activeTab==="issues"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.issues||[]).map((issue,i)=>(<div key={i} style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",alignItems:"flex-start",gap:4,marginBottom:6}}><SeverityDot s={issue.severity}/><span style={{fontWeight:700,fontSize:14}}>{issue.title}</span></div><p style={{margin:0,fontSize:13,color:C.mutedLight,lineHeight:1.65,paddingLeft:13}}>{issue.detail}</p></div>))}</div>)}
+        {activeTab==="exercises"&&(<div>{patientHistory.length>1&&<div style={{fontSize:11,color:C.muted,marginBottom:10,background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"8px 12px"}}>💬 前回の体操履歴をもとに進捗に合わせた内容を提案しています</div>}{(result.exercises||[]).map((ex,i)=><ExerciseCard key={i} ex={ex} idx={i}/>)}</div>)}
+        {activeTab==="lifestyle"&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>{(result.lifestyle||[]).map((tip,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}><span style={{width:26,height:26,borderRadius:8,background:C.accent+"1a",color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,flexShrink:0}}>{i+1}</span><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.7}}>{tip}</p></div>))}</div>)}
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={handleResultPrint} style={{flex:1,padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:12,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>🖨️ 印刷 / PDF保存</button>
         </div>
-        <button onClick={restart} style={{width:"100%",marginTop:10,padding:"13px",background:"transparent",border:`1.5px solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:C.font}}>別の動画で再解析</button>
+        <button onClick={restart} style={{width:"100%",marginTop:10,padding:"13px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:12,color:C.muted,fontSize:14,cursor:"pointer",fontFamily:C.font}}>別の動画で再解析</button>
       </div></div></div>
     );
   }
