@@ -1355,10 +1355,16 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
             <span style={{fontWeight:700,color:C.text}}>{patientName}</span>
             <span style={{fontSize:11,color:C.muted}}>— {patientHistory.length}回目 / {formatDate(patientHistory[0]?.date)}</span>
           </div>
-          <button
-            onClick={()=>{setHistoryPatient({id:patientId,name:patientName,history:patientHistory});setPhase("historyList");}}
-            style={{padding:"6px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
-          >📋 測定履歴</button>
+          <div style={{display:"flex",gap:6}}>
+            <button
+              onClick={()=>{setHistoryPatient({id:patientId,name:patientName,history:patientHistory});setPhase("historyList");}}
+              style={{padding:"6px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
+            >📋 測定履歴</button>
+            <button
+              onClick={()=>{setPhase("userSelect");}}
+              style={{padding:"6px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}
+            >👤 利用者選択</button>
+          </div>
         </div>
 
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"28px 20px",marginBottom:12,display:"flex",flexDirection:"column",alignItems:"center"}}>
