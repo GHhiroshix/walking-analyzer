@@ -1017,6 +1017,7 @@ const DeleteDialog = () => {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
+            {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
             {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
           </div>
         </div>
