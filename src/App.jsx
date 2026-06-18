@@ -371,9 +371,31 @@ function buildPrintHTML({ patientName, measureNo, dateStr, result }) {
 }
 
 function openPrintWindow(html) {
+
+}
+
+function downloadCSV(patientName, history) {
+  const headers = ["日付", "スコア", "要約", "歩行速度"];
+  const rows = history.map(h => [
+    formatDate(h.date),
+    h.score,
+    (h.summary || "").replace(/"/g, '""'),
+    (h.gait && h.gait.speed) ? h.gait.speed : "",
+  ]);
+  const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\r\n");
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `歩行解析履歴_${patientName}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
   const win = window.open("","_blank");
   if (win) { win.document.open(); win.document.write(html); win.document.close(); setTimeout(()=>win.print(), 1500); }
-}
 
 export default function WalkingVideoAnalyzer() {
 const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -988,14 +1010,17 @@ const DeleteDialog = () => {
     const hist = historyPatient.history || [];
     return (
       <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
-        <div style={{paddingTop:40,marginBottom:24}}>
+       <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
+          </div>
+        </div>
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input
@@ -1030,10 +1055,7 @@ const DeleteDialog = () => {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"10px 16px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>新しく測定 →</button>
-          </div>
+        　)}
         </div>
         {hist.length===0?(
           <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
