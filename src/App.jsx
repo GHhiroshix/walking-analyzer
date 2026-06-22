@@ -615,6 +615,108 @@ function SeverityDot({ s }) {
   const col=s==="high"?C.red:s==="medium"?C.amber:C.accent;
   return <span style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:col,marginRight:6,flexShrink:0,marginTop:5}}/>;
 }
+function getStepPoseSVG(step, col) {
+  const s = step || "";
+  const size = 48;
+  if (s.includes("座")||s.includes("腰かけ")||s.includes("イス")||s.includes("椅子")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="30" width="32" height="3.5" rx="1.75" fill={col} opacity="0.35"/>
+        <rect x="10" y="33" width="3.5" height="10" rx="1.75" fill={col} opacity="0.25"/>
+        <rect x="34" y="33" width="3.5" height="10" rx="1.75" fill={col} opacity="0.25"/>
+        <rect x="33" y="18" width="3.5" height="14" rx="1.75" fill={col} opacity="0.25"/>
+        <circle cx="24" cy="8" r="5.5" fill={col}/>
+        <rect x="19" y="13" width="10" height="12" rx="5" fill={col} opacity="0.85"/>
+        <rect x="13" y="24" width="9" height="4.5" rx="2.25" fill={col} opacity="0.75"/>
+        <rect x="26" y="24" width="9" height="4.5" rx="2.25" fill={col} opacity="0.75"/>
+        <rect x="13" y="28" width="3.5" height="8" rx="1.75" fill={col} opacity="0.65"/>
+        <rect x="31" y="28" width="3.5" height="8" rx="1.75" fill={col} opacity="0.65"/>
+      </svg>
+    );
+  }
+  if (s.includes("足を上げ")||s.includes("膝を上げ")||s.includes("脚を上げ")||s.includes("高く上げ")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="7" r="5.5" fill={col}/>
+        <line x1="24" y1="12" x2="24" y2="28" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+        <line x1="24" y1="18" x2="14" y2="24" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="18" x2="34" y2="24" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="28" x2="16" y2="42" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="28" x2="32" y2="22" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.75"/>
+        <line x1="32" y1="22" x2="40" y2="26" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.65"/>
+        <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+      </svg>
+    );
+  }
+  if (s.includes("立ち上が")||s.includes("立って")||s.includes("立つ")||s.includes("立ちます")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="7" r="5.5" fill={col}/>
+        <line x1="24" y1="12" x2="24" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+        <line x1="24" y1="18" x2="14" y2="25" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="18" x2="34" y2="25" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="30" x2="18" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="30" x2="30" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+      </svg>
+    );
+  }
+  if (s.includes("かかと")||s.includes("つま先")||s.includes("踵")||s.includes("爪先")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="7" r="5.5" fill={col}/>
+        <line x1="24" y1="12" x2="24" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+        <line x1="24" y1="18" x2="14" y2="24" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="18" x2="34" y2="24" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="30" x2="18" y2="40" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="30" x2="30" y2="40" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        <line x1="18" y1="40" x2="18" y2="36" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.8"/>
+        <line x1="30" y1="40" x2="30" y2="36" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.65"/>
+        <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+      </svg>
+    );
+  }
+  if (s.includes("腕")||s.includes("手を")||s.includes("前に伸")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="7" r="5.5" fill={col}/>
+        <line x1="24" y1="12" x2="24" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+        <line x1="24" y1="18" x2="8" y2="22" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="18" x2="40" y2="22" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="30" x2="18" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="30" x2="30" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+      </svg>
+    );
+  }
+  if (s.includes("深呼吸")||s.includes("息を")||s.includes("呼吸")||s.includes("リラックス")) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="7" r="5.5" fill={col}/>
+        <line x1="24" y1="12" x2="24" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+        <line x1="24" y1="17" x2="14" y2="22" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="17" x2="34" y2="22" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+        <line x1="24" y1="30" x2="18" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+        <line x1="24" y1="30" x2="30" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        <path d="M 14 10 Q 10 14 14 18" stroke={col} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.5"/>
+        <path d="M 34 10 Q 38 14 34 18" stroke={col} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.5"/>
+        <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="7" r="5.5" fill={col}/>
+      <line x1="24" y1="12" x2="24" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round"/>
+      <line x1="24" y1="18" x2="14" y2="25" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+      <line x1="24" y1="18" x2="34" y2="25" stroke={col} strokeWidth="3" strokeLinecap="round" opacity="0.75"/>
+      <line x1="24" y1="30" x2="18" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.85"/>
+      <line x1="24" y1="30" x2="30" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+      <line x1="8" y1="44" x2="40" y2="44" stroke={col} strokeWidth="1.5" strokeLinecap="round" opacity="0.25"/>
+    </svg>
+  );
+}
+
 function getExerciseSVG(name, target, col) {
   const t = (name||"") + (target||"");
   // 椅子・座位系
@@ -717,7 +819,7 @@ function ExerciseCard({ ex, idx }) {
   const [open,setOpen]=useState(false);
   const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
   const col=cols[idx%cols.length];
-  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div><div style={{display:"flex",justifyContent:"flex-end",marginTop:4,opacity:0.85}}>{getExerciseSVG(ex.name,ex.target,col)}</div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
+  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div><div style={{display:"flex",justifyContent:"flex-end",marginTop:4,opacity:0.85}}>{getExerciseSVG(ex.name,ex.target,col)}</div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:12,alignItems:"center",background:col+"08",borderRadius:10,padding:"8px 10px"}}><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800}}>{i+1}</span>{getStepPoseSVG(s,col)}</div><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
 }
 
 function GaitRadarChart({ gait }) {
