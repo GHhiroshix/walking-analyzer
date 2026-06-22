@@ -137,7 +137,7 @@ async function deletePatientNote(noteId) {
 
 async function getMyRole(facilityId, email) {
   const { data, error } = await supabase.from("staffs").select("role, facility_id, name").eq("email", email);
-  console.log("getMyRole data:", data, "error:", error);
+
   if (error || !data || data.length === 0) return { role: null, facilityId: null, name: null };
   return { role: data[0].role, facilityId: data[0].facility_id, name: data[0].name };
 }
@@ -398,6 +398,115 @@ function downloadCSV(patientName, history) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+// StaffManager component moved outside to avoid nesting re-creation bugs
+const StaffManager = ({
+  show,
+  onClose,
+  theme,
+  C,
+  alertThreshold,
+  setAlertThreshold,
+  noMeasurementDays,
+  setNoMeasurementDays,
+  myRole,
+  staffs,
+  session,
+  loadStaffs
+}) => {
+  const [localName, setLocalName] = useState("");
+  const [localEmail, setLocalEmail] = useState("");
+  const [localRole, setLocalRole] = useState("staff");
+  if (!show) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
+      <div style={{background:theme==="dark"?"#f5f0e8":"#1a2233",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.15)":"rgba(255,255,255,0.15)"}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto",color:theme==="dark"?"#2d2416":"#ddeeff",WebkitTextFillColor:theme==="dark"?"#2d2416":"#ddeeff"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontWeight:700,fontSize:16,color:C.text}}>👥 スタッフ管理</div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          <input value={localName} onChange={e=>setLocalName(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
+          <input value={localEmail} onChange={e=>setLocalEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
+          <select value={localRole} onChange={e=>setLocalRole(e.target.value)} style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
+            <option value="staff">スタッフ</option>
+            <option value="admin">管理者</option>
+          </select>
+          <button onClick={async()=>{
+            if(!localName.trim()||!localEmail.trim()) return;
+            await createStaff(session.user.id, localName.trim(), localEmail.trim(), localRole);
+            setLocalName(""); setLocalEmail(""); setLocalRole("staff");
+            await loadStaffs(session.user.id);
+          }} style={{padding:"10px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>
+            ＋ スタッフを追加
+          </button>
+        </div>
+        <div style={{marginBottom:16,padding:"12px 14px",background:theme==="dark"?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.15)",borderRadius:10,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)"}`}}>
+          <div style={{fontSize:11,fontWeight:700,marginBottom:8}}>⚠️ アラート設定</div>
+          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13}}>
+            <span>前回より</span>
+            <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))} disabled={myRole!=="admin"} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+            <span>点以上下がったら赤くアラート</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8}}>
+            <span>測定が</span>
+            <input type="number" min="1" max="365" value={noMeasurementDays} onChange={e=>setNoMeasurementDays(Number(e.target.value))} disabled={myRole!=="admin"} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
+            <span>日以上ないとアラート</span>
+          </div>
+          {myRole==="admin"&&<button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold, noMeasurementDays); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>}
+        </div>
+        <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
+        {staffs.length===0?(
+          <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"20px"}}>まだ登録されていません</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {staffs.map(s=>(
+              <div key={s.id} style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:C.text}}>{s.name}</div>
+                  <div style={{fontSize:11,color:C.muted}}>{s.email}</div>
+                  <div style={{fontSize:10,marginTop:2,color:s.role==="admin"?C.amber:C.accent}}>{s.role==="admin"?"👑 管理者":"👤 スタッフ"}</div>
+                </div>
+                <button onClick={async()=>{
+                  if(!window.confirm(`${s.name}を削除しますか？`)) return;
+                  await deleteStaff(s.id);
+                  await loadStaffs(session.user.id);
+                }} style={{background:"transparent",border:`1px solid ${C.red}44`,borderRadius:6,color:C.red,fontSize:11,cursor:"pointer",padding:"5px 10px",fontFamily:C.font}}>削除</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// DeleteDialog component moved outside to avoid nesting re-creation bugs
+const DeleteDialog = ({
+  confirm,
+  onCancel,
+  onConfirm,
+  C
+}) => {
+  if (!confirm) return null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
+      <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:340}}>
+        <div style={{fontSize:18,marginBottom:12,textAlign:"center"}}>{confirm.type==="patient"?"🗑️":"📋"}</div>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:8,textAlign:"center",color:C.text}}>{confirm.type==="patient"?"利用者を削除しますか？":"履歴を削除しますか？"}</div>
+        <div style={{fontSize:13,color:C.muted,textAlign:"center",marginBottom:20,lineHeight:1.6}}>
+          <span style={{color:C.text,fontWeight:700}}>{confirm.name}</span>
+          {confirm.type==="patient"?"さんのデータと全履歴が削除されます。":"さんの解析履歴がすべて削除されます。"}
+          <br/>この操作は取り消せません。
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onCancel} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
+          <button onClick={onConfirm} style={{flex:1,padding:"11px",background:C.red,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>削除する</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function WalkingVideoAnalyzer() {
 const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 const getSavedTheme = () => localStorage.getItem("theme") || getSystemTheme();
@@ -431,10 +540,11 @@ function GaitMetricsHistoryChart({ history }) {
   const items = [...history].reverse().slice(-8);
   const getScore = (v) => {
     if (!v) return 65;
-    if (v==="良好"||v==="正常"||v==="自然") return 85;
-    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
-    if (v.includes("やや")||v.includes("少し")) return 60;
-    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    const s = String(v);
+    if (s==="良好"||s==="正常"||s==="自然") return 85;
+    if (s.includes("十分")||s.includes("安定")||s.includes("良く")||s.includes("改善")||s.includes("伸び")) return 80;
+    if (s.includes("やや")||s.includes("少し")) return 60;
+    if (s.includes("不規則")||s.includes("小さい")||s.includes("少ない")||s.includes("擦る")||s.includes("前かがみ")) return 40;
     return 65;
   };
   const metrics = [
@@ -446,7 +556,7 @@ function GaitMetricsHistoryChart({ history }) {
   ];
   const cW=280, cH=100, pad=20;
   const validItems = items.filter(h => h.gait);
-  if (validItems.length < 1) return null;
+  if (validItems.length < 2) return null;
   return (
     <div style={{marginTop:16}}>
       <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
@@ -505,11 +615,109 @@ function SeverityDot({ s }) {
   const col=s==="high"?C.red:s==="medium"?C.amber:C.accent;
   return <span style={{display:"inline-block",width:7,height:7,borderRadius:"50%",background:col,marginRight:6,flexShrink:0,marginTop:5}}/>;
 }
+function getExerciseSVG(name, target, col) {
+  const t = (name||"") + (target||"");
+  // 椅子・座位系
+  if (t.includes("イス")||t.includes("椅子")||t.includes("座って")||t.includes("座位")) {
+    return (
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        {/* 椅子 */}
+        <rect x="10" y="36" width="36" height="4" rx="2" fill={col} opacity="0.4"/>
+        <rect x="12" y="40" width="4" height="10" rx="2" fill={col} opacity="0.3"/>
+        <rect x="40" y="40" width="4" height="10" rx="2" fill={col} opacity="0.3"/>
+        <rect x="38" y="20" width="4" height="20" rx="2" fill={col} opacity="0.3"/>
+        {/* 人物 */}
+        <circle cx="28" cy="10" r="6" fill={col}/>
+        {/* 胴体 */}
+        <rect x="22" y="16" width="12" height="14" rx="6" fill={col} opacity="0.85"/>
+        {/* 太もも */}
+        <rect x="16" y="28" width="10" height="5" rx="2.5" fill={col} opacity="0.8"/>
+        <rect x="30" y="28" width="10" height="5" rx="2.5" fill={col} opacity="0.8"/>
+        {/* 片足上げ */}
+        <rect x="16" y="33" width="4" height="10" rx="2" fill={col} opacity="0.7"/>
+        <line x1="36" y1="33" x2="44" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+      </svg>
+    );
+  }
+  // 歩行・歩き系
+  if (t.includes("歩")||t.includes("ウォーク")||t.includes("シルバーカー")||t.includes("歩行")) {
+    return (
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        {/* 人物 */}
+        <circle cx="28" cy="9" r="6" fill={col}/>
+        {/* 胴体 */}
+        <line x1="28" y1="15" x2="28" y2="32" stroke={col} strokeWidth="4" strokeLinecap="round"/>
+        {/* 腕 */}
+        <line x1="28" y1="20" x2="18" y2="28" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+        <line x1="28" y1="20" x2="38" y2="26" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+        {/* 足 */}
+        <line x1="28" y1="32" x2="18" y2="46" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.9"/>
+        <line x1="28" y1="32" x2="36" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        {/* 地面 */}
+        <line x1="10" y1="50" x2="46" y2="50" stroke={col} strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+      </svg>
+    );
+  }
+  // バランス・片足立ち系
+  if (t.includes("バランス")||t.includes("片足")||t.includes("重心")||t.includes("かかと上げ")||t.includes("つま先")) {
+    return (
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        {/* 人物 */}
+        <circle cx="28" cy="9" r="6" fill={col}/>
+        {/* 胴体 */}
+        <line x1="28" y1="15" x2="28" y2="33" stroke={col} strokeWidth="4" strokeLinecap="round"/>
+        {/* 腕バランス */}
+        <line x1="28" y1="21" x2="14" y2="26" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+        <line x1="28" y1="21" x2="42" y2="26" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+        {/* 片足立ち */}
+        <line x1="28" y1="33" x2="28" y2="50" stroke={col} strokeWidth="4" strokeLinecap="round"/>
+        {/* 上げた足 */}
+        <line x1="28" y1="38" x2="38" y2="44" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        {/* 地面 */}
+        <line x1="14" y1="50" x2="42" y2="50" stroke={col} strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+      </svg>
+    );
+  }
+  // 壁・立位・背すじ系
+  if (t.includes("壁")||t.includes("背すじ")||t.includes("立ち")||t.includes("伸ばし")||t.includes("姿勢")) {
+    return (
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        {/* 壁 */}
+        <rect x="38" y="6" width="5" height="46" rx="2.5" fill={col} opacity="0.2"/>
+        {/* 人物 */}
+        <circle cx="26" cy="10" r="6" fill={col}/>
+        {/* 胴体まっすぐ */}
+        <line x1="26" y1="16" x2="26" y2="36" stroke={col} strokeWidth="4" strokeLinecap="round"/>
+        {/* 腕 壁に添える */}
+        <line x1="26" y1="22" x2="37" y2="24" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+        <line x1="26" y1="22" x2="16" y2="28" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.6"/>
+        {/* 足 */}
+        <line x1="26" y1="36" x2="20" y2="50" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.9"/>
+        <line x1="26" y1="36" x2="32" y2="50" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+        {/* 地面 */}
+        <line x1="10" y1="50" x2="42" y2="50" stroke={col} strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+      </svg>
+    );
+  }
+  // デフォルト（体操一般）
+  return (
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+      <circle cx="28" cy="9" r="6" fill={col}/>
+      <line x1="28" y1="15" x2="28" y2="33" stroke={col} strokeWidth="4" strokeLinecap="round"/>
+      <line x1="28" y1="20" x2="16" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+      <line x1="28" y1="20" x2="40" y2="30" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.8"/>
+      <line x1="28" y1="33" x2="20" y2="50" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.9"/>
+      <line x1="28" y1="33" x2="36" y2="50" stroke={col} strokeWidth="3.5" strokeLinecap="round" opacity="0.7"/>
+      <line x1="10" y1="50" x2="46" y2="50" stroke={col} strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
+    </svg>
+  );
+}
+
 function ExerciseCard({ ex, idx }) {
   const [open,setOpen]=useState(false);
   const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
   const col=cols[idx%cols.length];
-  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:10,background:col+"1a",border:`1px solid ${col}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🏃</div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
+  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div><div style={{display:"flex",justifyContent:"flex-end",marginTop:4,opacity:0.85}}>{getExerciseSVG(ex.name,ex.target,col)}</div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,flexShrink:0}}>{i+1}</span><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
 }
 
 function GaitRadarChart({ gait }) {
@@ -524,10 +732,11 @@ function GaitRadarChart({ gait }) {
   ];
   const getScore = (v) => {
     if (!v) return 65;
-    if (v==="良好"||v==="正常"||v==="自然") return 85;
-    if (v.includes("十分")||v.includes("安定")||v.includes("良く")||v.includes("改善")||v.includes("伸び")) return 80;
-    if (v.includes("やや")||v.includes("少し")) return 60;
-    if (v.includes("不規則")||v.includes("小さい")||v.includes("少ない")||v.includes("擦る")||v.includes("前かがみ")) return 40;
+    const s = String(v);
+    if (s==="良好"||s==="正常"||s==="自然") return 85;
+    if (s.includes("十分")||s.includes("安定")||s.includes("良く")||s.includes("改善")||s.includes("伸び")) return 80;
+    if (s.includes("やや")||s.includes("少し")) return 60;
+    if (s.includes("不規則")||s.includes("小さい")||s.includes("少ない")||s.includes("擦る")||s.includes("前かがみ")) return 40;
     return 65;
   };
   const n = metrics.length;
@@ -606,15 +815,41 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const fileInputRef = useRef(null);
   const tapTargetXRef = useRef(null);
 
+  const initUserData = async (uid, email) => {
+    const result = await getMyRole(uid, email);
+    console.log("initUserData result:", result, "email:", email, "uid:", uid);
+    
+    let targetFacilityId = uid;
+    let targetRole = result.role;
+    let name = result.name || "管理者";
+    
+    if (result.role === "staff" && result.facilityId) {
+      targetFacilityId = result.facilityId;
+      name = result.name || "スタッフ";
+    }
+    
+    setMyRole(targetRole);
+    setEffectiveFacilityId(targetFacilityId);
+    setMyName(name);
+    
+    await Promise.all([
+      loadPatients(targetFacilityId),
+      loadStaffs(targetFacilityId),
+      loadFacilitySettings(targetFacilityId)
+    ]);
+  };
+
   useEffect(() => {
-    const timeout = setTimeout(() => setPhase("login"), 3000);
+    const timeout = setTimeout(() => {
+      setPhase(current => current === "loading" ? "login" : current);
+    }, 3000);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); loadFacilitySettings(s.user.id); }else { setPhase("login"); }
+      if (s) { setPhase("consent"); initUserData(s.user.id, s.user.email); } else { setPhase("login"); }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) { setPhase("consent"); loadPatients(s.user.id); loadStaffs(s.user.id); loadMyRole(s.user.id, s.user.email); loadFacilitySettings(s.user.id); } else { setPhase("login"); }
+      if (s) { setPhase("consent"); initUserData(s.user.id, s.user.email); } else { setPhase("login"); }
     });
     const l = document.createElement("link");
     l.rel="stylesheet"; l.href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Kosugi+Maru&display=swap";
@@ -635,22 +870,6 @@ const loadFacilitySettings = async (facilityId) => {
   const settings = await getFacilitySettings(facilityId);
   setAlertThreshold(settings.alert_threshold || 5);
   setNoMeasurementDays(settings.no_measurement_days || 30);
-};
-
-const loadMyRole = async (facilityId, email) => {
-  const result = await getMyRole(facilityId, email);
-  console.log("myRole取得結果:", result.role, "email:", email, "facilityId:", facilityId);
-  setMyRole(result.role);
-  if (result.role === "staff" && result.facilityId) {
-    setEffectiveFacilityId(result.facilityId);
-    setMyName(result.name || "スタッフ");
-    await loadPatients(result.facilityId);
-    await loadStaffs(result.facilityId);
-    await loadFacilitySettings(result.facilityId);
-  } else {
-    setEffectiveFacilityId(facilityId);
-    setMyName(result.name || "管理者");
-  }
 };
 
   
@@ -757,12 +976,17 @@ const loadMyRole = async (facilityId, email) => {
         if (hasRhythm && parsed.score < 70) parsed.score = 70;
 
         const parsedFixed = { ...parsed, summary: fixTerms(parsed.summary), progress: fixTerms(parsed.progress), aids: parsed.aids ? { ...parsed.aids, detected: (parsed.aids.detected||[]).map(fixTerms), usage: fixTerms(parsed.aids.usage), recommendation: fixTerms(parsed.aids.recommendation) } : parsed.aids, gait: parsed.gait ? Object.fromEntries(Object.entries(parsed.gait).map(([k,v])=>[k,fixTerms(v)])) : parsed.gait, issues: (parsed.issues||[]).map(iss=>({...iss, title:fixTerms(iss.title), detail:fixTerms(iss.detail)})), exercises: (parsed.exercises||[]).map(ex=>({...ex, name:fixTerms(ex.name), target:fixTerms(ex.target), effect:fixTerms(ex.effect), steps:(ex.steps||[]).map(fixTerms)})), lifestyle: (parsed.lifestyle||[]).map(fixTerms) };
-        const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
-        await saveAnalysis(patientId, session.user.id, record, parsedFixed);
-        const newHistory = await getPatientHistory(patientId);
-        setPatientHistory(newHistory);
+        if (!isQuick) {
+          const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
+          await saveAnalysis(patientId, effectiveFacilityId, record, parsedFixed);
+          const newHistory = await getPatientHistory(patientId);
+          setPatientHistory(newHistory);
+          setActiveTab(newHistory.length>1?"compare":"gait");
+        } else {
+          setPatientHistory([]);
+          setActiveTab("gait");
+        }
         setResult(parsedFixed);
-        setActiveTab(newHistory.length>1?"compare":"gait");
         setPhase("result");
       } finally { vid.src=""; document.body.removeChild(vid); }
     } catch(e) { console.error(e); setError("エラー: "+e.message); setPhase("upload"); }
@@ -773,95 +997,9 @@ const loadMyRole = async (facilityId, email) => {
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     setVideoUrl(null); setFrames([]); setResult(null);
     setError(null); setProgress(0); setActiveTab("gait"); setCurrentFrame(0);
+    setTapTargetX(null);
+    tapTargetXRef.current = null;
     if (session) await loadPatients(effectiveFacilityId);
-  };
-
- const StaffManager = () => {
-  const [localName, setLocalName] = useState("");
-  const [localEmail, setLocalEmail] = useState("");
-  const [localRole, setLocalRole] = useState("staff");
-  if (!showStaffManager) return null;
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
-      <div style={{background:theme==="dark"?"#f5f0e8":"#1a2233",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.15)":"rgba(255,255,255,0.15)"}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto",color:theme==="dark"?"#2d2416":"#ddeeff",WebkitTextFillColor:theme==="dark"?"#2d2416":"#ddeeff"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontWeight:700,fontSize:16,color:C.text}}>👥 スタッフ管理</div>
-          <button onClick={()=>setShowStaffManager(false)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-          <input value={localName} onChange={e=>setLocalName(e.target.value)} placeholder="スタッフ名" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
-          <input value={localEmail} onChange={e=>setLocalEmail(e.target.value)} placeholder="メールアドレス" type="email" style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none",caretColor:theme==="dark"?"#2d2416":"#ddeeff"}}/>
-          <select value={localRole} onChange={e=>setLocalRole(e.target.value)} style={{background:C.surface,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.3)"}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}>
-            <option value="staff">スタッフ</option>
-            <option value="admin">管理者</option>
-          </select>
-          <button onClick={async()=>{
-            if(!localName.trim()||!localEmail.trim()) return;
-            await createStaff(session.user.id, localName.trim(), localEmail.trim(), localRole);
-            setLocalName(""); setLocalEmail(""); setLocalRole("staff");
-            await loadStaffs(session.user.id);
-          }} style={{padding:"10px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>
-            ＋ スタッフを追加
-          </button>
-        </div>
-        <div style={{marginBottom:16,padding:"12px 14px",background:theme==="dark"?"rgba(0,0,0,0.08)":"rgba(255,255,255,0.15)",borderRadius:10,border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.2)":"rgba(255,255,255,0.2)"}`}}>
-          <div style={{fontSize:11,fontWeight:700,marginBottom:8}}>⚠️ アラート設定</div>
-          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13}}>
-            <span>前回より</span>
-            <input type="number" min="1" max="50" value={alertThreshold} onChange={e=>setAlertThreshold(Number(e.target.value))} disabled={myRole!=="admin"} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
-            <span>点以上下がったら赤くアラート</span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8}}>
-            <span>測定が</span>
-            <input type="number" min="1" max="365" value={noMeasurementDays} onChange={e=>setNoMeasurementDays(Number(e.target.value))} disabled={myRole!=="admin"} style={{width:50,background:"transparent",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.3)"}`,borderRadius:6,padding:"4px 8px",color:"inherit",fontSize:13,fontFamily:C.font,textAlign:"center"}}/>
-            <span>日以上ないとアラート</span>
-          </div>
-          {myRole==="admin"&&<button onClick={async()=>{await upsertFacilitySettings(session.user.id, alertThreshold, noMeasurementDays); alert("保存しました！");}} style={{marginTop:10,padding:"7px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>保存</button>}
-        </div>
-        <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>登録済みスタッフ</div>
-        {staffs.length===0?(
-          <div style={{textAlign:"center",color:C.muted,fontSize:13,padding:"20px"}}>まだ登録されていません</div>
-        ):(
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {staffs.map(s=>(
-              <div key={s.id} style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:13,color:C.text}}>{s.name}</div>
-                  <div style={{fontSize:11,color:C.muted}}>{s.email}</div>
-                  <div style={{fontSize:10,marginTop:2,color:s.role==="admin"?C.amber:C.accent}}>{s.role==="admin"?"👑 管理者":"👤 スタッフ"}</div>
-                </div>
-                <button onClick={async()=>{
-                  if(!window.confirm(`${s.name}を削除しますか？`)) return;
-                  await deleteStaff(s.id);
-                  await loadStaffs(session.user.id);
-                }} style={{background:"transparent",border:`1px solid ${C.red}44`,borderRadius:6,color:C.red,fontSize:11,cursor:"pointer",padding:"5px 10px",fontFamily:C.font}}>削除</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-const DeleteDialog = () => {
-    if (!deleteConfirm) return null;
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
-        <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:340}}>
-          <div style={{fontSize:18,marginBottom:12,textAlign:"center"}}>{deleteConfirm.type==="patient"?"🗑️":"📋"}</div>
-          <div style={{fontWeight:700,fontSize:15,marginBottom:8,textAlign:"center",color:C.text}}>{deleteConfirm.type==="patient"?"利用者を削除しますか？":"履歴を削除しますか？"}</div>
-          <div style={{fontSize:13,color:C.muted,textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-            <span style={{color:C.text,fontWeight:700}}>{deleteConfirm.name}</span>
-            {deleteConfirm.type==="patient"?"さんのデータと全履歴が削除されます。":"さんの解析履歴がすべて削除されます。"}
-            <br/>この操作は取り消せません。
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>setDeleteConfirm(null)} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
-            <button onClick={handleDeleteConfirm} style={{flex:1,padding:"11px",background:C.red,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font}}>削除する</button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // ── LOGIN ─────────────────────────────────────────────────────────────────
@@ -938,10 +1076,23 @@ const DeleteDialog = () => {
       {key:"c4",label:"本アプリの解析結果は参考情報であり、医療診断の代替ではないことを理解しています",note:"強い不安がある場合は医療機関・理学療法士にご相談ください",imp:false},
     ];
     return (
-      <div style={wrap}><GlassOrbs/><StaffManager/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/><StaffManager
+        show={showStaffManager}
+        onClose={() => setShowStaffManager(false)}
+        theme={theme}
+        C={C}
+        alertThreshold={alertThreshold}
+        setAlertThreshold={setAlertThreshold}
+        noMeasurementDays={noMeasurementDays}
+        setNoMeasurementDays={setNoMeasurementDays}
+        myRole={myRole}
+        staffs={staffs}
+        session={session}
+        loadStaffs={loadStaffs}
+      /><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
           <div style={{display:"flex",gap:8}}>
-  {myRole==="admin"&&<button onClick={()=>{console.log("クリック！", showStaffManager); setShowStaffManager(true); console.log("セット後");}} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
+  {myRole==="admin"&&<button onClick={()=>setShowStaffManager(true)} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
   <button onClick={handleLogout} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
 </div>
         </div>
@@ -1124,7 +1275,26 @@ const DeleteDialog = () => {
 
     return (
       <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
-        <DeleteDialog/><StaffManager/>
+        <DeleteDialog
+          confirm={deleteConfirm}
+          onCancel={() => setDeleteConfirm(null)}
+          onConfirm={handleDeleteConfirm}
+          C={C}
+        />
+        <StaffManager
+          show={showStaffManager}
+          onClose={() => setShowStaffManager(false)}
+          theme={theme}
+          C={C}
+          alertThreshold={alertThreshold}
+          setAlertThreshold={setAlertThreshold}
+          noMeasurementDays={noMeasurementDays}
+          setNoMeasurementDays={setNoMeasurementDays}
+          myRole={myRole}
+          staffs={staffs}
+          session={session}
+          loadStaffs={loadStaffs}
+        />
         <div style={{paddingTop:40,marginBottom:28}}>
           <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
           <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
@@ -1297,7 +1467,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
               ))}
             </div>
             <div style={{display:"flex",gap:10,marginTop:12}}>
-              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
+              <button onClick={()=>{URL.revokeObjectURL(videoUrl);setVideoUrl(null);setTapTargetX(null);tapTargetXRef.current = null;setShowTapGuide(false);}} style={{flex:1,padding:"11px",background:"transparent",border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>動画を変更</button>
               {!showTapGuide?(
                 <button onClick={()=>setShowTapGuide(true)} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:10,color:C.bgSolid,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,boxShadow:`0 4px 20px ${C.accent}33`}}>👆 被解析者を選択 →</button>
               ):(
