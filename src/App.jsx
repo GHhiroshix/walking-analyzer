@@ -353,7 +353,17 @@ function buildPrintHTML({ patientName, measureNo, dateStr, result }) {
           <div style="font-size:16px;font-weight:900;color:#065f46;margin-bottom:6px;">${ex.name}
             <span style="font-size:12px;color:#666;font-weight:400;">（${ex.target} ／ ${ex.duration}）</span>
           </div>
-          ${ex.steps.map((s,j)=>`<div class="ex-step">${j+1}. ${s}</div>`).join("")}
+          ${ex.steps.map((s,j)=>{
+            const st=s||"";
+            const icon=st.includes("座")||st.includes("イス")||st.includes("椅子")?"🪑":
+                       st.includes("足を上げ")||st.includes("膝を上げ")?"🦵":
+                       st.includes("立ち上が")||st.includes("立って")||st.includes("立つ")?"🧍":
+                       st.includes("かかと")||st.includes("つま先")?"👣":
+                       st.includes("腕")||st.includes("手を")?"🙆":
+                       st.includes("深呼吸")||st.includes("息を")||st.includes("呼吸")?"🌬️":
+                       st.includes("歩")||st.includes("ウォーク")?"🚶":"▶️";
+            return `<div class="ex-step"><span style="font-size:16px;margin-right:6px;">${icon}</span><span style="display:inline-block;min-width:20px;height:20px;border-radius:50%;background:#d1fae5;color:#065f46;font-size:11px;font-weight:800;text-align:center;line-height:20px;margin-right:8px;">${j+1}</span>${s}</div>`;
+          }).join("")}
           <div style="font-size:13px;color:#065f46;font-weight:700;margin-top:8px;padding:8px 10px;background:#d1fae5;border-radius:6px;">✓ 効果：${ex.effect}</div>
         </div>`).join("")}
     </div>`;
