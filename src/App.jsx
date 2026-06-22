@@ -398,9 +398,6 @@ function downloadCSV(patientName, history) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-  const win = window.open("","_blank");
-  if (win) { win.document.open(); win.document.write(html); win.document.close(); setTimeout(()=>win.print(), 1500); }
-
 export default function WalkingVideoAnalyzer() {
 const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 const getSavedTheme = () => localStorage.getItem("theme") || getSystemTheme();
