@@ -54,6 +54,21 @@ const GlassOrbs = () => (
   </div>
 );
 
+async function getShareToken(patientId) {
+  const { data, error } = await supabase.from("share_tokens").select("token").eq("patient_id", patientId).maybeSingle();
+  if (error) { console.error(error); return null; }
+  return data ? data.token : null;
+}
+async function createShareToken(patientId, facilityId) {
+  const { data, error } = await supabase.from("share_tokens").insert({ patient_id: patientId, facility_id: facilityId }).select("token").single();
+  if (error) { console.error(error); return null; }
+  return data.token;
+}
+async function deleteShareToken(patientId) {
+  const { error } = await supabase.from("share_tokens").delete().eq("patient_id", patientId);
+  if (error) { console.error(error); return false; }
+  return true;
+}
 async function getPatients(facilityId) {
   const { data, error } = await supabase.from("patients").select("id, name, furigana, age_group, created_at").eq("facility_id", facilityId).order("furigana", { ascending: true });
   if (error) { console.error(error); return []; }
@@ -517,7 +532,85 @@ const DeleteDialog = ({
   );
 };
 
+function SharePage({ token }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const theme = "light";
+  const C = LIGHT;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/share?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (!res.ok) { setError(json.error || "読み込みに失敗しました"); }
+        else {
+          const parsed = (json.history || []).map(h => {
+            let r = {};
+            try { r = JSON.parse(h.result_text); } catch(e) {}
+            return { ...r, date: h.analyzed_at };
+          });
+          setData({ patientName: json.patient.name, history: parsed });
+        }
+      } catch (e) {
+        setError("読み込みに失敗しました");
+      }
+      setLoading(false);
+    })();
+  }, [token]);
+
+  if (loading) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.text}}>読み込み中...</div>;
+  }
+  if (error) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.red,padding:20,textAlign:"center"}}>{error}</div>;
+  }
+
+  const hist = data.history;
+  return (
+    <div style={{minHeight:"100vh",background:C.bgSolid,fontFamily:C.font,padding:"24px 16px"}}>
+      <div style={{maxWidth:640,margin:"0 auto"}}>
+        <h2 style={{fontSize:20,fontWeight:900,color:C.text,marginBottom:4}}>{data.patientName} さんの歩行測定記録</h2>
+        <p style={{color:C.muted,fontSize:13,marginBottom:20}}>{hist.length}回の測定履歴</p>
+
+        {hist.length>1 && (
+          <div style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            <GaitMetricsHistoryChart history={hist}/>
+          </div>
+        )}
+
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {hist.map((h,i)=>{
+            const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
+            return (
+              <div key={i} style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontSize:13,color:C.muted}}>{formatDate(h.date)}</span>
+                  <span style={{fontWeight:900,fontSize:20,color:col,fontFamily:"'Space Mono',monospace"}}>{h.score}</span>
+                </div>
+                <div style={{fontSize:13,color:C.text,marginBottom:10}}>{h.summary}</div>
+                {h.exercises && h.exercises.length>0 && (
+                  <div style={{marginTop:8}}>
+                    <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>体操メニュー</div>
+                    {h.exercises.map((ex,j)=><ExerciseCard key={j} ex={ex} idx={j}/>)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:24}}>このページはご家族向けの共有リンクです</div>
+      </div>
+    </div>
+  );
+}
+
 export default function WalkingVideoAnalyzer() {
+const shareMatch = window.location.pathname.match(/^\/share\/(.+)$/);
+if (shareMatch) {
+  return <SharePage token={shareMatch[1]} />;
+}
 const getSystemTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 const getSavedTheme = () => localStorage.getItem("theme") || getSystemTheme();
 const [theme, setTheme] = useState(getSavedTheme);
@@ -925,6 +1018,9 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [historyPatient, setHistoryPatient] = useState(null);
   const [historyDetail, setHistoryDetail] = useState(null);
   const [patientNotes, setPatientNotes] = useState([]);
+  const [shareToken, setShareToken] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [myName, setMyName] = useState("");
   const videoRef = useRef(null);
@@ -1287,8 +1383,19 @@ const loadFacilitySettings = async (facilityId) => {
             </div>
             {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
             {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
+            {hist.length>0&&!shareToken&&<button disabled={shareLoading} onClick={async()=>{setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:shareLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>👨‍👩‍👧 家族共有リンク発行</button>}
           </div>
         </div>
+        {shareToken&&(
+          <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:16,marginTop:12}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>👨‍👩‍👧 家族共有リンク（ログイン不要）</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              <input readOnly value={`${window.location.origin}/share/${shareToken}`} onFocus={e=>e.target.select()} style={{flex:1,minWidth:200,background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"8px 10px",color:C.text,fontSize:12,fontFamily:"monospace"}} />
+              <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/share/${shareToken}`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{padding:"8px 14px",background:C.accent,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{shareCopied?"コピーしました":"コピー"}</button>
+              <button onClick={async()=>{if(!window.confirm("このリンクを無効にしますか？家族が今後アクセスできなくなります。"))return;await deleteShareToken(historyPatient.id);setShareToken(null);}} style={{padding:"8px 14px",background:"transparent",border:`${C.borderW} solid ${C.red}`,borderRadius:8,color:C.red,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>リンク無効化</button>
+            </div>
+          </div>
+        )}
         <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
@@ -1459,7 +1566,7 @@ const isAlert = last && prev && (prev.score - last.score) >= alertThreshold;cons
 const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement >= noMeasurementDays;
                   return (
                     <div key={p.id} style={{background:isAlert?`rgba(255,77,109,0.08)`:isOverdue?`rgba(245,166,35,0.08)`:C.surface,border:`${C.borderW} solid ${isAlert?C.red:isOverdue?C.amber:C.border}`,borderRadius:12,padding:"14px 16px",transition:"all 0.15s"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");getPatientNotes(p.id).then(setPatientNotes);}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12}} onClick={()=>{setHistoryPatient(p);setPhase("historyList");getPatientNotes(p.id).then(setPatientNotes);setShareToken(null);setShareCopied(false);getShareToken(p.id).then(setShareToken);}}>
                         <div style={{width:40,height:40,borderRadius:"50%",background:C.panel,border:`2px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,cursor:"pointer"}}>👤</div>
                         <div style={{flex:1,minWidth:0,cursor:"pointer"}}>
                           <div style={{fontWeight:700,fontSize:15,color:C.text}}>{p.name}</div>
