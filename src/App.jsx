@@ -1491,7 +1491,7 @@ const loadFacilitySettings = async (facilityId) => {
           @media print{@page{margin:14mm;}}
         </style></head><body>
         <div class="header">
-          <div class="title">${historyPatient.name} 様 月次レポート</div>
+          <div class="title">${historyPatient.name} 月次レポート</div>
           <div class="subtitle">${y}年${parseInt(mo)}月 ／ 測定${monthRecords.length}回</div>
         </div>
         <div class="stats">
@@ -1531,7 +1531,7 @@ const loadFacilitySettings = async (facilityId) => {
           <button onClick={()=>{setPhase("historyList");setReportMonth(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 測定履歴に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name} 様の月次レポート</h2>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name} の月次レポート</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{y}年{parseInt(mo)}月 ／ 測定{monthRecords.length}回</p>
             </div>
             <button onClick={handlePrintMonthly} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>🖨️ 印刷</button>
