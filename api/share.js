@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       .single();
 
     if (tokenError || !shareToken) {
-      return res.status(404).json({ error: 'リンクが無効です' });
+      return res.status(404).json({ error: 'リンクが無効です', debug: tokenError ? tokenError.message : 'no data', urlSet: !!process.env.VITE_SUPABASE_URL, keySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
     }
 
     // 患者情報の取得（最低限の情報のみ）
