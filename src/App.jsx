@@ -1728,6 +1728,87 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
   return null;
 }
 
+function ShareGaitChart({ history }) {
+  if (!history || history.length < 2) return null;
+  const items = [...history].reverse().slice(-8);
+  const getScore = (v) => {
+    if (!v) return 65;
+    const s = String(v);
+    if (s==="良好"||s==="正常"||s==="自然") return 85;
+    if (s.includes("十分")||s.includes("安定")||s.includes("良く")||s.includes("改善")||s.includes("伸び")) return 80;
+    if (s.includes("やや")||s.includes("少し")) return 60;
+    if (s.includes("不規則")||s.includes("小さい")||s.includes("少ない")||s.includes("擦る")||s.includes("前かがみ")) return 40;
+    return 65;
+  };
+  const metrics = [
+    { key:"cadence", label:"歩行リズム", color:"#39e0b0" },
+    { key:"stride",  label:"歩幅",       color:"#4da6ff" },
+    { key:"posture", label:"体幹・姿勢", color:"#f5a623" },
+    { key:"armSwing",label:"腕振り",     color:"#c084fc" },
+    { key:"footClearance",label:"足の上がり",color:"#39e0b0" },
+  ];
+  const cW=280, cH=100, pad=20;
+  const validItems = items.filter(h => h.gait);
+  if (validItems.length < 2) return null;
+  return (
+    <div style={{marginTop:16}}>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
+      <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}>
+        <defs>
+          {metrics.map((m,i) => (
+            <linearGradient key={i} id={`smg${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={m.color} stopOpacity="0.15"/>
+              <stop offset="100%" stopColor={m.color} stopOpacity="0"/>
+            </linearGradient>
+          ))}
+        </defs>
+        {[40,60,80].map(v => {
+          const y = cH-pad-((v-20)/(100-20))*(cH-pad*2);
+          return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
+        })}
+        {metrics.map((m, mi) => {
+          const pts = validItems.map((h,i) => ({
+            x: pad+(i/(validItems.length-1))*(cW-pad*2),
+            y: cH-pad-((getScore(h.gait[m.key])-20)/(100-20))*(cH-pad*2),
+            score: getScore(h.gait[m.key])
+          }));
+          const pathD = pts.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
+          return (
+            <g key={mi}>
+              <path d={pathD} fill="none" stroke={m.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.8"/>
+              {pts.map((p,i) => (
+                <circle key={i} cx={p.x} cy={p.y} r={3} fill={m.color} stroke="rgba(10,15,30,1)" strokeWidth={1.5}/>
+              ))}
+            </g>
+          );
+        })}
+        {validItems.map((h,i) => {
+          const x = pad+(i/(validItems.length-1))*(cW-pad*2);
+          const d = h.date ? new Date(h.date) : null;
+          const label = d ? `${d.getMonth()+1}/${d.getDate()}` : "";
+          return <text key={i} x={x} y={cH-4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.35)">{label}</text>;
+        })}
+      </svg>
+      <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
+        {metrics.map((m,i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:16,height:3,borderRadius:2,background:m.color}}/>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShareExerciseCard({ ex, idx }) {
+  const C = LIGHT;
+  const [open,setOpen]=useState(false);
+  const cols=[C.accent,C.blue,C.amber,"#c084fc","#f472b6"];
+  const col=cols[idx%cols.length];
+  return (<div onClick={()=>setOpen(!open)} style={{background:C.panel,border:`1px solid ${open?col+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"border-color 0.2s",boxShadow:open?`0 0 24px ${col}18`:"none",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,color:C.text,fontSize:14}}>{ex.name}</span>{ex.isNew===false&&<span style={{fontSize:9,background:C.amber+"22",color:C.amber,border:`1px solid ${C.amber}44`,borderRadius:100,padding:"1px 7px",fontWeight:700}}>継続</span>}</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.target} ／ {ex.duration}</div></div><div style={{color:C.muted,fontSize:16,transform:open?"rotate(180deg)":"none",transition:"0.2s",flexShrink:0}}>▾</div></div><div style={{display:"flex",justifyContent:"flex-end",marginTop:4,opacity:0.85}}>{getExerciseSVG(ex.name,ex.target,col)}</div>{open&&(<div style={{marginTop:14,borderTop:`${C.borderW} solid ${C.border}`,paddingTop:14}}>{ex.steps.map((s,i)=>(<div key={i} style={{display:"flex",gap:10,marginBottom:12,alignItems:"center",background:col+"08",borderRadius:10,padding:"8px 10px"}}><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}><span style={{minWidth:22,height:22,borderRadius:"50%",background:col+"22",color:col,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800}}>{i+1}</span>{getStepPoseSVG(s,col)}</div><span style={{fontSize:13,color:C.text,lineHeight:1.6}}>{s}</span></div>))}<div style={{marginTop:10,padding:"8px 12px",background:col+"0f",borderRadius:8,borderLeft:`3px solid ${col}`,fontSize:12,color:col}}>💡 {ex.effect}</div></div>)}</div>);
+}
+
 function SharePage({ token }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -1772,7 +1853,7 @@ function SharePage({ token }) {
 
         {hist.length>1 && (
           <div style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
-            <GaitMetricsHistoryChart history={hist}/>
+            <ShareGaitChart history={hist}/>
           </div>
         )}
 
@@ -1789,7 +1870,7 @@ function SharePage({ token }) {
                 {h.exercises && h.exercises.length>0 && (
                   <div style={{marginTop:8}}>
                     <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>体操メニュー</div>
-                    {h.exercises.map((ex,j)=><ExerciseCard key={j} ex={ex} idx={j}/>)}
+                    {h.exercises.map((ex,j)=><ShareExerciseCard key={j} ex={ex} idx={j}/>)}
                   </div>
                 )}
               </div>
