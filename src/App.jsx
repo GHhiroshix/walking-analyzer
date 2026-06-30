@@ -953,6 +953,8 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [reportMonth, setReportMonth] = useState(null);
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryAllData, setSummaryAllData] = useState(null);
+  const [showSummaryMonthPicker, setShowSummaryMonthPicker] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [myName, setMyName] = useState("");
   const videoRef = useRef(null);
@@ -1739,21 +1741,56 @@ const loadFacilitySettings = async (facilityId) => {
             </div>
             {patients.length>0&&<button disabled={summaryLoading} onClick={async()=>{
               setSummaryLoading(true);
-              const now = new Date();
-              const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-              const results = await Promise.all(patients.map(async p=>{
+              const allResults = await Promise.all(patients.map(async p=>{
                 const hist = await getPatientHistory(p.id);
-                const monthRecords = hist.filter(h=>{
-                  const d = new Date(h.date);
-                  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === ym;
-                });
-                return { patient: p, monthRecords, allHistory: hist };
+                return { patient: p, allHistory: hist };
               }));
-              setSummaryData({ month: ym, results });
+              setSummaryAllData(allResults);
               setSummaryLoading(false);
-              setPhase("facilitySummary");
-            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 今月のサマリー"}</button>}
+              setShowSummaryMonthPicker(true);
+            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 月次サマリー"}</button>}
           </div>
+          {showSummaryMonthPicker&&summaryAllData&&(()=>{
+            const monthSet = new Set();
+            summaryAllData.forEach(r=>r.allHistory.forEach(h=>{
+              const d = new Date(h.date);
+              monthSet.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+            }));
+            const months = Array.from(monthSet).sort().reverse();
+            return (
+              <div onClick={()=>setShowSummaryMonthPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto"}}>
+                  <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:14}}>📅 対象月を選択</div>
+                  {months.length===0?(
+                    <div style={{color:C.muted,fontSize:13,textAlign:"center",padding:"20px 0"}}>測定データがありません</div>
+                  ):(
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {months.map(m=>{
+                        const [y,mo]=m.split("-");
+                        return (
+                          <button key={m} onClick={()=>{
+                            const results = summaryAllData.map(r=>{
+                              const monthRecords = r.allHistory.filter(h=>{
+                                const d = new Date(h.date);
+                                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === m;
+                              });
+                              return { patient: r.patient, monthRecords, allHistory: r.allHistory };
+                            });
+                            setSummaryData({ month: m, results });
+                            setShowSummaryMonthPicker(false);
+                            setPhase("facilitySummary");
+                          }} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,textAlign:"left"}}>
+                            <span>{y}年{parseInt(mo)}月</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <button onClick={()=>setShowSummaryMonthPicker(false)} style={{marginTop:14,width:"100%",padding:"10px",background:"none",border:"none",color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         {error&&<div style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red}}>⚠️ {error}</div>}
 
