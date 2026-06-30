@@ -600,8 +600,12 @@ function GaitMetricsHistoryChart({ history }) {
             </g>
           );
         })}
-        <text x={pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">最古</text>
-        <text x={cW-pad} y={cH-4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">今回</text>
+        {validItems.map((h,i) => {
+          const x = pad+(i/(validItems.length-1))*(cW-pad*2);
+          const d = h.date ? new Date(h.date) : null;
+          const label = d ? `${d.getMonth()+1}/${d.getDate()}` : "";
+          return <text key={i} x={x} y={cH-4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.35)">{label}</text>;
+        })}
       </svg>
       {/* 凡例 */}
       <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
