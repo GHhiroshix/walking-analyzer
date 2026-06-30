@@ -532,79 +532,6 @@ const DeleteDialog = ({
   );
 };
 
-function SharePage({ token }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const theme = "light";
-  const C = LIGHT;
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/share?token=${encodeURIComponent(token)}`);
-        const json = await res.json();
-        if (!res.ok) { setError(json.error || "読み込みに失敗しました"); }
-        else {
-          const parsed = (json.history || []).map(h => {
-            let r = {};
-            try { r = JSON.parse(h.result_text); } catch(e) {}
-            return { ...r, date: h.analyzed_at };
-          });
-          setData({ patientName: json.patient.name, history: parsed });
-        }
-      } catch (e) {
-        setError("読み込みに失敗しました");
-      }
-      setLoading(false);
-    })();
-  }, [token]);
-
-  if (loading) {
-    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.text}}>読み込み中...</div>;
-  }
-  if (error) {
-    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.red,padding:20,textAlign:"center"}}>{error}</div>;
-  }
-
-  const hist = data.history;
-  return (
-    <div style={{minHeight:"100vh",background:C.bgSolid,fontFamily:C.font,padding:"24px 16px"}}>
-      <div style={{maxWidth:640,margin:"0 auto"}}>
-        <h2 style={{fontSize:20,fontWeight:900,color:C.text,marginBottom:4}}>{data.patientName} さんの歩行測定記録</h2>
-        <p style={{color:C.muted,fontSize:13,marginBottom:20}}>{hist.length}回の測定履歴</p>
-
-        {hist.length>1 && (
-          <div style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
-            <GaitMetricsHistoryChart history={hist}/>
-          </div>
-        )}
-
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {hist.map((h,i)=>{
-            const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
-            return (
-              <div key={i} style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:13,color:C.muted}}>{formatDate(h.date)}</span>
-                  <span style={{fontWeight:900,fontSize:20,color:col,fontFamily:"'Space Mono',monospace"}}>{h.score}</span>
-                </div>
-                <div style={{fontSize:13,color:C.text,marginBottom:10}}>{h.summary}</div>
-                {h.exercises && h.exercises.length>0 && (
-                  <div style={{marginTop:8}}>
-                    <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>体操メニュー</div>
-                    {h.exercises.map((ex,j)=><ExerciseCard key={j} ex={ex} idx={j}/>)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:24}}>このページはご家族向けの共有リンクです</div>
-      </div>
-    </div>
-  );
-}
 
 export default function WalkingVideoAnalyzer() {
 const shareMatch = window.location.pathname.match(/^\/share\/(.+)$/);
@@ -971,6 +898,80 @@ function GaitRadarChart({ gait }) {
   );
 }
 
+
+function SharePage({ token }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const theme = "light";
+  const C = LIGHT;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/share?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (!res.ok) { setError(json.error || "読み込みに失敗しました"); }
+        else {
+          const parsed = (json.history || []).map(h => {
+            let r = {};
+            try { r = JSON.parse(h.result_text); } catch(e) {}
+            return { ...r, date: h.analyzed_at };
+          });
+          setData({ patientName: json.patient.name, history: parsed });
+        }
+      } catch (e) {
+        setError("読み込みに失敗しました");
+      }
+      setLoading(false);
+    })();
+  }, [token]);
+
+  if (loading) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.text}}>読み込み中...</div>;
+  }
+  if (error) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:C.font,color:C.red,padding:20,textAlign:"center"}}>{error}</div>;
+  }
+
+  const hist = data.history;
+  return (
+    <div style={{minHeight:"100vh",background:C.bgSolid,fontFamily:C.font,padding:"24px 16px"}}>
+      <div style={{maxWidth:640,margin:"0 auto"}}>
+        <h2 style={{fontSize:20,fontWeight:900,color:C.text,marginBottom:4}}>{data.patientName} さんの歩行測定記録</h2>
+        <p style={{color:C.muted,fontSize:13,marginBottom:20}}>{hist.length}回の測定履歴</p>
+
+        {hist.length>1 && (
+          <div style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            <GaitMetricsHistoryChart history={hist}/>
+          </div>
+        )}
+
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {hist.map((h,i)=>{
+            const col=h.score>=75?C.accent:h.score>=50?C.amber:C.red;
+            return (
+              <div key={i} style={{background:C.panel,border:`2.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontSize:13,color:C.muted}}>{formatDate(h.date)}</span>
+                  <span style={{fontWeight:900,fontSize:20,color:col,fontFamily:"'Space Mono',monospace"}}>{h.score}</span>
+                </div>
+                <div style={{fontSize:13,color:C.text,marginBottom:10}}>{h.summary}</div>
+                {h.exercises && h.exercises.length>0 && (
+                  <div style={{marginTop:8}}>
+                    <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:8}}>体操メニュー</div>
+                    {h.exercises.map((ex,j)=><ExerciseCard key={j} ex={ex} idx={j}/>)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:24}}>このページはご家族向けの共有リンクです</div>
+      </div>
+    </div>
+  );
+}
 function FrameStrip({ frames, current, onSelect }) {
   return (<div style={{display:"flex",gap:6,overflowX:"auto",padding:"4px 0 8px"}}>{frames.map((f,i)=>(<div key={i} onClick={()=>onSelect(i)} style={{flexShrink:0,cursor:"pointer",border:`2px solid ${current===i?C.accent:C.border}`,borderRadius:6,overflow:"hidden",boxShadow:current===i?`0 0 12px ${C.accent}44`:"none",transition:"all 0.15s"}}><img src={`data:image/jpeg;base64,${f.b64}`} alt={`f${i}`} style={{display:"block",width:72,height:48,objectFit:"cover"}}/><div style={{textAlign:"center",fontSize:9,color:C.muted,padding:"2px 0",background:C.surface}}>{formatTime(f.time)}</div></div>))}</div>);
 }
