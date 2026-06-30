@@ -951,6 +951,8 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [shareCopied, setShareCopied] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [reportMonth, setReportMonth] = useState(null);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [myName, setMyName] = useState("");
   const videoRef = useRef(null);
@@ -1594,6 +1596,96 @@ const loadFacilitySettings = async (facilityId) => {
     );
   }
 
+  // ── FACILITY SUMMARY ──────────────────────────────────────────────────────
+  if (phase==="facilitySummary" && summaryData) {
+    const { month, results } = summaryData;
+    const [y, mo] = month.split("-");
+
+    const withData = results.filter(r=>r.monthRecords.length>0);
+    const overallAvg = withData.length>0 ? Math.round(withData.reduce((s,r)=>s+r.monthRecords.reduce((s2,h)=>s2+h.score,0)/r.monthRecords.length,0)/withData.length) : null;
+
+    // 利用者ごとの平均・変化量
+    const patientStats = withData.map(r=>{
+      const sorted = [...r.monthRecords].sort((a,b)=>new Date(a.date)-new Date(b.date));
+      const avg = Math.round(sorted.reduce((s,h)=>s+h.score,0)/sorted.length);
+      const delta = sorted.length>1 ? sorted[sorted.length-1].score - sorted[0].score : 0;
+      const latest = sorted[sorted.length-1];
+      return { patient: r.patient, avg, delta, count: sorted.length, latestScore: latest.score };
+    }).sort((a,b)=>a.avg-b.avg);
+
+    // アラート対象：スコアが低い（60未満）または大きく低下（-10以上）
+    const alerts = patientStats.filter(p=>p.latestScore<60 || p.delta<=-10);
+
+    // 未測定の利用者
+    const noData = results.filter(r=>r.monthRecords.length===0).map(r=>r.patient);
+
+    return (
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+        <div style={{paddingTop:40,marginBottom:24}}>
+          <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
+          <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>施設全体の月次サマリー</h2>
+          <p style={{color:C.muted,fontSize:13,marginTop:8}}>{y}年{parseInt(mo)}月 ／ 測定のあった利用者 {withData.length}名 ／ 全{results.length}名</p>
+        </div>
+
+        <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 140px",background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>全体平均スコア</div>
+            <div style={{fontSize:28,fontWeight:900,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{overallAvg!==null?overallAvg:"-"}</div>
+          </div>
+          <div style={{flex:"1 1 140px",background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>要注意の利用者</div>
+            <div style={{fontSize:28,fontWeight:900,color:alerts.length>0?C.red:C.accent,fontFamily:"'Space Mono',monospace"}}>{alerts.length}名</div>
+          </div>
+          <div style={{flex:"1 1 140px",background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px",textAlign:"center"}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>未測定</div>
+            <div style={{fontSize:28,fontWeight:900,color:C.amber,fontFamily:"'Space Mono',monospace"}}>{noData.length}名</div>
+          </div>
+        </div>
+
+        {alerts.length>0&&(
+          <div style={{background:C.red+"0f",border:`${C.borderW} solid ${C.red}55`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            <div style={{fontSize:11,color:C.red,letterSpacing:2,marginBottom:10,fontWeight:700}}>⚠️ 要注意の利用者</div>
+            {alerts.map((a,i)=>(
+              <div key={i} onClick={()=>{setHistoryPatient({id:a.patient.id,name:a.patient.name,history:results.find(r=>r.patient.id===a.patient.id).allHistory});setPhase("historyList");}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<alerts.length-1?`1px solid ${C.red}33`:"none",cursor:"pointer"}}>
+                <span style={{fontSize:14,fontWeight:700,color:C.text}}>{a.patient.name}</span>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:12,color:C.muted}}>最新: {a.latestScore}</span>
+                  {a.delta!==0&&<span style={{fontSize:12,fontWeight:700,color:a.delta<0?C.red:C.accent}}>{a.delta>0?"+":""}{a.delta}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {patientStats.length>0&&(
+          <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>全利用者の平均スコア</div>
+            {patientStats.map((p,i)=>(
+              <div key={i} onClick={()=>{setHistoryPatient({id:p.patient.id,name:p.patient.name,history:results.find(r=>r.patient.id===p.patient.id).allHistory});setPhase("historyList");}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<patientStats.length-1?`${C.borderW} solid ${C.border}`:"none",cursor:"pointer"}}>
+                <span style={{fontSize:13,color:C.text}}>{p.patient.name}</span>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:11,color:C.muted}}>{p.count}回測定</span>
+                  <span style={{fontWeight:700,color:p.avg>=75?C.accent:p.avg>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:30,textAlign:"right"}}>{p.avg}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {noData.length>0&&(
+          <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>今月まだ測定がない利用者</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {noData.map((p,i)=>(
+                <span key={i} style={{fontSize:12,color:C.mutedLight,background:C.surface,borderRadius:100,padding:"4px 12px"}}>{p.name}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div></div>
+    );
+  }
+
   // ── USER SELECT ───────────────────────────────────────────────────────────
   if (phase==="userSelect") {
     const addNew = async () => {
@@ -1640,8 +1732,28 @@ const loadFacilitySettings = async (facilityId) => {
         />
         <div style={{paddingTop:40,marginBottom:28}}>
           <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
-          <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
-          <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+            <div>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
+              <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
+            </div>
+            {patients.length>0&&<button disabled={summaryLoading} onClick={async()=>{
+              setSummaryLoading(true);
+              const now = new Date();
+              const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+              const results = await Promise.all(patients.map(async p=>{
+                const hist = await getPatientHistory(p.id);
+                const monthRecords = hist.filter(h=>{
+                  const d = new Date(h.date);
+                  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === ym;
+                });
+                return { patient: p, monthRecords, allHistory: hist };
+              }));
+              setSummaryData({ month: ym, results });
+              setSummaryLoading(false);
+              setPhase("facilitySummary");
+            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 今月のサマリー"}</button>}
+          </div>
         </div>
         {error&&<div style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red}}>⚠️ {error}</div>}
 
