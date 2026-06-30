@@ -949,6 +949,8 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [shareToken, setShareToken] = useState(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [reportMonth, setReportMonth] = useState(null);
   const [noteInput, setNoteInput] = useState("");
   const [myName, setMyName] = useState("");
   const videoRef = useRef(null);
@@ -1312,6 +1314,7 @@ const loadFacilitySettings = async (facilityId) => {
             {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
             {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
             {hist.length>0&&!shareToken&&<button disabled={shareLoading} onClick={async()=>{setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:shareLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>👨‍👩‍👧 家族共有リンク発行</button>}
+            {hist.length>0&&<button onClick={()=>setShowMonthPicker(true)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📅 月次レポート</button>}
           </div>
         </div>
         {shareToken&&(
@@ -1324,6 +1327,34 @@ const loadFacilitySettings = async (facilityId) => {
             </div>
           </div>
         )}
+        {showMonthPicker&&(()=>{
+          const monthSet = new Set(hist.map(h=>{const d=new Date(h.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;}));
+          const months = Array.from(monthSet).sort().reverse();
+          return (
+            <div onClick={()=>setShowMonthPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto"}}>
+                <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:14}}>📅 対象月を選択</div>
+                {months.length===0?(
+                  <div style={{color:C.muted,fontSize:13,textAlign:"center",padding:"20px 0"}}>測定データがありません</div>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {months.map(m=>{
+                      const [y,mo]=m.split("-");
+                      const count = hist.filter(h=>{const d=new Date(h.date);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`===m;}).length;
+                      return (
+                        <button key={m} onClick={()=>{setReportMonth(m);setShowMonthPicker(false);setPhase("monthlyReport");}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:C.font,textAlign:"left"}}>
+                          <span>{y}年{parseInt(mo)}月</span>
+                          <span style={{fontSize:11,color:C.muted,fontWeight:400}}>{count}回測定</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <button onClick={()=>setShowMonthPicker(false)} style={{marginTop:14,width:"100%",padding:"10px",background:"none",border:"none",color:C.muted,fontSize:13,cursor:"pointer",fontFamily:C.font}}>キャンセル</button>
+              </div>
+            </div>
+          );
+        })()}
         <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
@@ -1402,6 +1433,162 @@ const loadFacilitySettings = async (facilityId) => {
               );
             })}
           </div>
+        )}
+      </div></div>
+    );
+  }
+
+  // ── MONTHLY REPORT ────────────────────────────────────────────────────────
+  if (phase==="monthlyReport" && historyPatient && reportMonth) {
+    const hist = historyPatient.history || [];
+    const [y, mo] = reportMonth.split("-");
+    const monthRecords = hist.filter(h=>{
+      const d = new Date(h.date);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === reportMonth;
+    }).sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+    const avgScore = monthRecords.length>0 ? Math.round(monthRecords.reduce((s,h)=>s+h.score,0)/monthRecords.length) : null;
+    const firstScore = monthRecords.length>0 ? monthRecords[0].score : null;
+    const lastScore = monthRecords.length>0 ? monthRecords[monthRecords.length-1].score : null;
+    const scoreDelta = (firstScore!==null && lastScore!==null) ? lastScore-firstScore : null;
+
+    // 体操の実施頻度集計（名前ベース）
+    const exerciseCounts = {};
+    monthRecords.forEach(h=>{
+      (h.exercises||[]).forEach(ex=>{
+        exerciseCounts[ex.name] = (exerciseCounts[ex.name]||0)+1;
+      });
+    });
+    const topExercises = Object.entries(exerciseCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // 課題の出現頻度集計
+    const issueCounts = {};
+    monthRecords.forEach(h=>{
+      (h.issues||[]).forEach(iss=>{
+        issueCounts[iss.title] = (issueCounts[iss.title]||0)+1;
+      });
+    });
+    const topIssues = Object.entries(issueCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    const handlePrintMonthly = () => {
+      const win = window.open("","_blank");
+      if (!win) return;
+      let html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>月次レポート_${historyPatient.name}_${y}年${parseInt(mo)}月</title>
+        <style>
+          body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;background:#fff;color:#1a1a1a;padding:32px;max-width:760px;margin:0 auto;}
+          .header{border-bottom:3px solid #0a7a5a;padding-bottom:16px;margin-bottom:24px;}
+          .title{font-size:22px;font-weight:900;color:#0a7a5a;}
+          .subtitle{font-size:13px;color:#666;margin-top:4px;}
+          .stats{display:flex;gap:16px;margin-bottom:24px;}
+          .stat-box{flex:1;background:#f0f9f5;border-radius:10px;padding:14px;text-align:center;}
+          .stat-label{font-size:11px;color:#666;margin-bottom:4px;}
+          .stat-value{font-size:24px;font-weight:900;color:#0a7a5a;}
+          .section{margin-bottom:24px;}
+          .section-title{font-size:14px;font-weight:900;color:#0a7a5a;margin-bottom:10px;border-left:4px solid #0a7a5a;padding-left:8px;}
+          .record{border:1px solid #ddd;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;}
+          .record-date{color:#666;font-size:11px;}
+          .freq-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:13px;}
+          @media print{@page{margin:14mm;}}
+        </style></head><body>
+        <div class="header">
+          <div class="title">${historyPatient.name} 様 月次レポート</div>
+          <div class="subtitle">${y}年${parseInt(mo)}月 ／ 測定${monthRecords.length}回</div>
+        </div>
+        <div class="stats">
+          <div class="stat-box"><div class="stat-label">平均スコア</div><div class="stat-value">${avgScore!==null?avgScore:"-"}</div></div>
+          <div class="stat-box"><div class="stat-label">月初スコア</div><div class="stat-value">${firstScore!==null?firstScore:"-"}</div></div>
+          <div class="stat-box"><div class="stat-label">月末スコア</div><div class="stat-value">${lastScore!==null?lastScore:"-"}</div></div>
+          <div class="stat-box"><div class="stat-label">変化</div><div class="stat-value">${scoreDelta!==null?(scoreDelta>0?"+":"")+scoreDelta:"-"}</div></div>
+        </div>`;
+      if (topExercises.length>0) {
+        html += `<div class="section"><div class="section-title">よく行った体操</div>`;
+        topExercises.forEach(([name,count])=>{
+          html += `<div class="freq-item"><span>${name}</span><span>${count}回</span></div>`;
+        });
+        html += `</div>`;
+      }
+      if (topIssues.length>0) {
+        html += `<div class="section"><div class="section-title">継続して見られた課題</div>`;
+        topIssues.forEach(([title,count])=>{
+          html += `<div class="freq-item"><span>${title}</span><span>${count}回</span></div>`;
+        });
+        html += `</div>`;
+      }
+      html += `<div class="section"><div class="section-title">測定記録一覧</div>`;
+      monthRecords.forEach(h=>{
+        html += `<div class="record"><div class="record-date">${formatDate(h.date)}　スコア: ${h.score}</div>${h.summary||""}</div>`;
+      });
+      html += `</div>
+        <div style="margin-top:24px;font-size:11px;color:#999;text-align:center;">本レポートはAI歩行解析の参考情報です。医療診断の代替ではありません。</div>
+        </body></html>`;
+      win.document.open(); win.document.write(html); win.document.close();
+      setTimeout(()=>win.print(), 800);
+    };
+
+    return (
+      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+        <div style={{paddingTop:40,marginBottom:24}}>
+          <button onClick={()=>{setPhase("historyList");setReportMonth(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 測定履歴に戻る</button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name} 様の月次レポート</h2>
+              <p style={{color:C.muted,fontSize:13,marginTop:4}}>{y}年{parseInt(mo)}月 ／ 測定{monthRecords.length}回</p>
+            </div>
+            <button onClick={handlePrintMonthly} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>🖨️ 印刷</button>
+          </div>
+        </div>
+
+        {monthRecords.length===0?(
+          <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>この月の測定データがありません</div>
+        ):(
+          <>
+            <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+              {[
+                {label:"平均スコア", value:avgScore},
+                {label:"月初スコア", value:firstScore},
+                {label:"月末スコア", value:lastScore},
+                {label:"変化", value:scoreDelta!==null?(scoreDelta>0?"+":"")+scoreDelta:null},
+              ].map((s,i)=>(
+                <div key={i} style={{flex:"1 1 120px",background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"14px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:6}}>{s.label}</div>
+                  <div style={{fontSize:24,fontWeight:900,color:C.accent,fontFamily:"'Space Mono',monospace"}}>{s.value!==null?s.value:"-"}</div>
+                </div>
+              ))}
+            </div>
+
+            {topExercises.length>0&&(
+              <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>よく行った体操</div>
+                {topExercises.map(([name,count],i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<topExercises.length-1?`1px solid ${C.border}33`:"none",fontSize:13,color:C.text}}>
+                    <span>{name}</span><span style={{color:C.muted}}>{count}回</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {topIssues.length>0&&(
+              <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+                <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>継続して見られた課題</div>
+                {topIssues.map(([title,count],i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<topIssues.length-1?`1px solid ${C.border}33`:"none",fontSize:13,color:C.text}}>
+                    <span>{title}</span><span style={{color:C.muted}}>{count}回</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
+              <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>測定記録一覧</div>
+              {monthRecords.map((h,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<monthRecords.length-1?`${C.borderW} solid ${C.border}`:"none"}}>
+                  <div style={{fontSize:11,color:C.muted,width:80,flexShrink:0}}>{formatDate(h.date)}</div>
+                  <div style={{fontWeight:700,color:h.score>=75?C.accent:h.score>=50?C.amber:C.red,fontFamily:"'Space Mono',monospace",width:36}}>{h.score}</div>
+                  <div style={{fontSize:12,color:C.mutedLight,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.summary}</div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div></div>
     );
