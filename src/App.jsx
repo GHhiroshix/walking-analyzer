@@ -1322,6 +1322,11 @@ const loadFacilitySettings = async (facilityId) => {
             </div>
         　)}
         </div>
+        {hist.length>1&&(
+          <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+            <GaitMetricsHistoryChart history={hist}/>
+          </div>
+        )}
         {hist.length===0?(
           <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:12,padding:"32px",textAlign:"center",color:C.muted,fontSize:13}}>まだ測定履歴がありません</div>
         ):(
