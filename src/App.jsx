@@ -977,6 +977,7 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [shareCopied, setShareCopied] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [reportMonth, setReportMonth] = useState(null);
+  const [showHistoryActionsMenu, setShowHistoryActionsMenu] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryAllData, setSummaryAllData] = useState(null);
@@ -1353,9 +1354,21 @@ const loadFacilitySettings = async (facilityId) => {
               <p style={{color:C.muted,fontSize:13,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
             {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
-            {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
-            {hist.length>0&&!shareToken&&facilitySettings.plan==="pro"&&<button disabled={shareLoading} onClick={async()=>{setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:shareLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>👨‍👩‍👧 家族共有リンク発行</button>}
-            {hist.length>0&&facilitySettings.plan==="pro"&&<button onClick={()=>setShowMonthPicker(true)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📅 月次レポート</button>}
+            {hist.length>0&&(
+              <div style={{position:"relative"}}>
+                <button onClick={()=>setShowHistoryActionsMenu(v=>!v)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>⋯ その他</button>
+                {showHistoryActionsMenu&&(
+                  <>
+                    <div onClick={()=>setShowHistoryActionsMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
+                    <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:6,minWidth:200,zIndex:100,boxShadow:"0 8px 24px rgba(0,0,0,0.25)"}}>
+                      <button onClick={()=>{setShowHistoryActionsMenu(false);downloadCSV(historyPatient.name, hist);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",background:"none",border:"none",borderRadius:8,color:C.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:C.font,textAlign:"left"}}>📊 CSV</button>
+                      {!shareToken&&facilitySettings.plan==="pro"&&<button disabled={shareLoading} onClick={async()=>{setShowHistoryActionsMenu(false);setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",background:"none",border:"none",borderRadius:8,color:C.text,fontSize:13,fontWeight:600,cursor:shareLoading?"default":"pointer",fontFamily:C.font,textAlign:"left"}}>👨‍👩‍👧 家族共有リンク発行</button>}
+                      {facilitySettings.plan==="pro"&&<button onClick={()=>{setShowHistoryActionsMenu(false);setShowMonthPicker(true);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",background:"none",border:"none",borderRadius:8,color:C.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:C.font,textAlign:"left"}}>📅 月次レポート</button>}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {shareToken&&(
