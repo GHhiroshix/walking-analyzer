@@ -1828,7 +1828,7 @@ const loadFacilitySettings = async (facilityId) => {
               setSummaryAllData(allResults);
               setSummaryLoading(false);
               setShowSummaryMonthPicker(true);
-            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 月次サマリー"}</button>}
+            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 施設月次サマリー"}</button>}
           </div>
           {showSummaryMonthPicker&&summaryAllData&&(()=>{
             const monthSet = new Set();
