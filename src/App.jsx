@@ -106,8 +106,31 @@ async function deleteSingleHistory(analysisId) {
 }
 async function getFacilitySettings(facilityId) {
   const { data, error } = await supabase.from("facility_settings").select("*").eq("facility_id", facilityId);
-  if (error || !data || data.length === 0) return { alert_threshold: 5, no_measurement_days: 30 };
+  if (error || !data || data.length === 0) return { alert_threshold: 5, no_measurement_days: 30, plan: "free", monthly_analysis_count: 0, analysis_month: null };
   return data[0];
+}
+
+async function incrementAnalysisCount(facilityId, currentSettings) {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const isNewMonth = currentSettings.analysis_month !== ym;
+  const newCount = isNewMonth ? 1 : (currentSettings.monthly_analysis_count || 0) + 1;
+  const { error } = await supabase.from("facility_settings").upsert({
+    facility_id: facilityId,
+    analysis_month: ym,
+    monthly_analysis_count: newCount,
+    updated_at: new Date().toISOString()
+  }, { onConflict: "facility_id" });
+  if (error) console.error(error);
+  return newCount;
+}
+
+function canAnalyze(settings) {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  if (settings.plan === "pro") return true;
+  if (settings.analysis_month !== ym) return true;
+  return (settings.monthly_analysis_count || 0) < 10;
 }
 
 async function upsertFacilitySettings(facilityId, alertThreshold, noMeasurementDays) {
@@ -919,6 +942,7 @@ function scoreDiff(cur, prev) { const d = cur - prev; if (d > 0) return { label:
   const [staffRoleInput, setStaffRoleInput] = useState("staff");
   const [showStaffManager, setShowStaffManager] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(5);
+  const [facilitySettings, setFacilitySettings] = useState({ plan: "free", monthly_analysis_count: 0, analysis_month: null });
   const [noMeasurementDays, setNoMeasurementDays] = useState(30);
   const [checks, setChecks] = useState({c1:false,c2:false,c3:false,c4:false});
   const [patients, setPatients] = useState([]);
@@ -1016,6 +1040,7 @@ const loadFacilitySettings = async (facilityId) => {
   const settings = await getFacilitySettings(facilityId);
   setAlertThreshold(settings.alert_threshold || 5);
   setNoMeasurementDays(settings.no_measurement_days || 30);
+  setFacilitySettings(settings);
 };
 
   
@@ -1048,6 +1073,11 @@ const loadFacilitySettings = async (facilityId) => {
 
   const startAnalysis = async () => {
     if (!videoRef.current) return;
+    // プランチェック（クイック解析は無料プランでも可、ただし月10回まで）
+    if (patientId && !canAnalyze(facilitySettings)) {
+      setError("今月の無料プランの解析回数（10回）に達しました。有料プランへのアップグレードをご検討ください。");
+      return;
+    }
     setPhase("extracting"); setProgress(0); setError(null);
     try {
       const vid = document.createElement("video");
@@ -1125,6 +1155,8 @@ const loadFacilitySettings = async (facilityId) => {
         if (!isQuick) {
           const record = { date:new Date().toISOString(), score:parsedFixed.score, summary:parsedFixed.summary, issues:parsedFixed.issues, exercises:parsedFixed.exercises };
           await saveAnalysis(patientId, effectiveFacilityId, record, parsedFixed);
+          const newCount = await incrementAnalysisCount(effectiveFacilityId, facilitySettings);
+          setFacilitySettings(prev => ({ ...prev, monthly_analysis_count: newCount, analysis_month: `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}` }));
           const newHistory = await getPatientHistory(patientId);
           setPatientHistory(newHistory);
           setActiveTab(newHistory.length>1?"compare":"gait");
@@ -1317,8 +1349,8 @@ const loadFacilitySettings = async (facilityId) => {
             </div>
             {hist.length>0&&<button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",marginRight:8}}>＋ 新しく測定</button>}
             {hist.length>0&&<button onClick={()=>downloadCSV(historyPatient.name, hist)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📊 CSV</button>}
-            {hist.length>0&&!shareToken&&<button disabled={shareLoading} onClick={async()=>{setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:shareLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>👨‍👩‍👧 家族共有リンク発行</button>}
-            {hist.length>0&&<button onClick={()=>setShowMonthPicker(true)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📅 月次レポート</button>}
+            {hist.length>0&&!shareToken&&facilitySettings.plan==="pro"&&<button disabled={shareLoading} onClick={async()=>{setShareLoading(true);const t=await createShareToken(historyPatient.id, effectiveFacilityId);setShareToken(t);setShareLoading(false);}} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:shareLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>👨‍👩‍👧 家族共有リンク発行</button>}
+            {hist.length>0&&facilitySettings.plan==="pro"&&<button onClick={()=>setShowMonthPicker(true)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>📅 月次レポート</button>}
           </div>
         </div>
         {shareToken&&(
@@ -1819,7 +1851,7 @@ const loadFacilitySettings = async (facilityId) => {
               <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
               <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
             </div>
-            {patients.length>0&&<button disabled={summaryLoading} onClick={async()=>{
+            {patients.length>0&&facilitySettings.plan==="pro"&&<button disabled={summaryLoading} onClick={async()=>{
               setSummaryLoading(true);
               const allResults = await Promise.all(patients.map(async p=>{
                 const hist = await getPatientHistory(p.id);
@@ -1872,6 +1904,21 @@ const loadFacilitySettings = async (facilityId) => {
             );
           })()}
         </div>
+        {facilitySettings.plan==="free"&&(()=>{
+          const now = new Date();
+          const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+          const usedCount = facilitySettings.analysis_month===ym ? (facilitySettings.monthly_analysis_count||0) : 0;
+          const remaining = Math.max(0, 10-usedCount);
+          return (
+            <div style={{background:remaining===0?C.red+"18":C.amber+"18",border:`1px solid ${remaining===0?C.red:C.amber}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13}}>
+              {remaining===0?(
+                <span style={{color:C.red}}>⚠️ 今月の無料解析回数（10回）に達しました。</span>
+              ):(
+                <span style={{color:C.amber}}>⚡ 無料プラン ／ 今月の残り解析回数: <b>{remaining}回</b>（月10回まで）</span>
+              )}
+            </div>
+          );
+        })()}
         {error&&<div style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.red}}>⚠️ {error}</div>}
 
         {/* 検索ボックス */}
