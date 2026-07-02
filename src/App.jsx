@@ -2215,7 +2215,7 @@ function ShareGaitChart({ history }) {
   if (validItems.length < 2) return null;
   return (
     <div style={{marginTop:16}}>
-      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
+      <div style={{fontSize:11,color:"rgba(0,0,0,0.5)",letterSpacing:2,marginBottom:10}}>歩行指標の推移</div>
       <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}>
         <defs>
           {metrics.map((m,i) => (
@@ -2227,7 +2227,7 @@ function ShareGaitChart({ history }) {
         </defs>
         {[40,60,80].map(v => {
           const y = cH-pad-((v-20)/(100-20))*(cH-pad*2);
-          return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
+          return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(0,0,0,0.1)" strokeWidth="1"/>;
         })}
         {metrics.map((m, mi) => {
           const pts = validItems.map((h,i) => ({
@@ -2249,14 +2249,14 @@ function ShareGaitChart({ history }) {
           const x = pad+(i/(validItems.length-1))*(cW-pad*2);
           const d = h.date ? new Date(h.date) : null;
           const label = d ? `${d.getMonth()+1}/${d.getDate()}` : "";
-          return <text key={i} x={x} y={cH-4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.35)">{label}</text>;
+          return <text key={i} x={x} y={cH-4} textAnchor="middle" fontSize="7" fill="rgba(0,0,0,0.5)">{label}</text>;
         })}
       </svg>
       <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
         {metrics.map((m,i) => (
           <div key={i} style={{display:"flex",alignItems:"center",gap:4}}>
             <div style={{width:16,height:3,borderRadius:2,background:m.color}}/>
-            <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{m.label}</span>
+            <span style={{fontSize:10,color:"rgba(0,0,0,0.5)"}}>{m.label}</span>
           </div>
         ))}
       </div>
