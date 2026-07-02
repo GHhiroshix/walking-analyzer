@@ -1621,6 +1621,44 @@ const loadFacilitySettings = async (facilityId) => {
     // 未測定の利用者
     const noData = results.filter(r=>r.monthRecords.length===0).map(r=>r.patient);
 
+    // 施設全体の歩行指標時系列データ
+    const getGaitScore = (v) => {
+      if (!v) return null;
+      const s = String(v);
+      if (s==="良好"||s==="正常"||s==="自然") return 85;
+      if (s.includes("十分")||s.includes("安定")||s.includes("良く")||s.includes("改善")||s.includes("伸び")) return 80;
+      if (s.includes("やや")||s.includes("少し")) return 60;
+      if (s.includes("不規則")||s.includes("小さい")||s.includes("少ない")||s.includes("擦る")||s.includes("前かがみ")) return 40;
+      return 65;
+    };
+    const metricKeys = ["cadence","stride","posture","armSwing","footClearance"];
+    const metricColors2 = {"cadence":"#39e0b0","stride":"#4da6ff","posture":"#f5a623","armSwing":"#c084fc","footClearance":"#f472b6"};
+    const metricLabels2 = {"cadence":"歩行リズム","stride":"歩幅","posture":"体幹・姿勢","armSwing":"腕振り","footClearance":"足の上がり"};
+    const dateMap = {};
+    withData.forEach(r=>{
+      r.monthRecords.forEach(h=>{
+        if (!h.gait) return;
+        const dk = h.date ? h.date.slice(0,10) : null;
+        if (!dk) return;
+        if (!dateMap[dk]) dateMap[dk] = {};
+        metricKeys.forEach(k=>{
+          const sc = getGaitScore(h.gait[k]);
+          if (sc===null) return;
+          if (!dateMap[dk][k]) dateMap[dk][k] = [];
+          dateMap[dk][k].push(sc);
+        });
+      });
+    });
+    const sortedDates = Object.keys(dateMap).sort();
+    const facilityGaitData = sortedDates.map(date=>{
+      const entry = { date };
+      metricKeys.forEach(k=>{
+        const arr = dateMap[date][k] || [];
+        entry[k] = arr.length>0 ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+      });
+      return entry;
+    });
+
     return (
       <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
@@ -1658,6 +1696,48 @@ const loadFacilitySettings = async (facilityId) => {
             ))}
           </div>
         )}
+
+        {facilityGaitData.length>1&&(()=>{
+          const cW=280, cH=100, pad=20;
+          return (
+            <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+              <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:10}}>施設全体 歩行指標の推移（平均）</div>
+              <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{overflow:"visible"}}>
+                {[40,60,80].map(v=>{
+                  const y=cH-pad-((v-20)/(100-20))*(cH-pad*2);
+                  return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
+                })}
+                {metricKeys.map((k,mi)=>{
+                  const pts = facilityGaitData.map((d,i)>>({
+                    x: pad+(i/(facilityGaitData.length-1))*(cW-pad*2),
+                    y: d[k]!==null ? cH-pad-((d[k]-20)/(100-20))*(cH-pad*2) : null,
+                  })).filter(p=>p.y!==null);
+                  if (pts.length<2) return null;
+                  const pathD = pts.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
+                  return (
+                    <g key={k}>
+                      <path d={pathD} fill="none" stroke={metricColors2[k]} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.85"/>
+                      {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r={3} fill={metricColors2[k]} stroke="rgba(10,15,30,1)" strokeWidth={1.5}/>)}
+                    </g>
+                  );
+                })}
+                {facilityGaitData.map((d,i)=>{
+                  const x=pad+(i/(facilityGaitData.length-1))*(cW-pad*2);
+                  const dt=new Date(d.date);
+                  return <text key={i} x={x} y={cH-4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.35)">{`${dt.getMonth()+1}/${dt.getDate()}`}</text>;
+                })}
+              </svg>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:8}}>
+                {metricKeys.map(k=>(
+                  <div key={k} style={{display:"flex",alignItems:"center",gap:4}}>
+                    <div style={{width:16,height:3,borderRadius:2,background:metricColors2[k]}}/>
+                    <span style={{fontSize:10,color:"rgba(255,255,255,0.5)"}}>{metricLabels2[k]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {patientStats.length>0&&(
           <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
