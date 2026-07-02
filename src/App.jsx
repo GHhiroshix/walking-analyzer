@@ -2559,6 +2559,7 @@ function SharePage({ token }) {
           })}
         </div>
         <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:24}}>このページはご家族向けの共有リンクです</div>
+        <div style={{textAlign:"center",color:C.muted,fontSize:11,marginTop:6}}>本ページの内容はAI歩行解析の参考情報です。医療診断の代替ではありません。</div>
       </div>
     </div>
   );
