@@ -20,12 +20,17 @@ export default async function handler(req, res) {
     // トークンの検証
     const { data: shareToken, error: tokenError } = await supabase
       .from('share_tokens')
-      .select('patient_id')
+      .select('patient_id, expires_at')
       .eq('token', token)
       .single();
 
     if (tokenError || !shareToken) {
       return res.status(404).json({ error: 'リンクが無効です' });
+    }
+
+    // 有効期限の確認
+    if (shareToken.expires_at && new Date(shareToken.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'このリンクの有効期限が切れています。施設に新しいリンクの発行を依頼してください。' });
     }
 
     // 患者情報の取得（最低限の情報のみ）

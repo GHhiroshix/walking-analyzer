@@ -60,7 +60,9 @@ async function getShareToken(patientId) {
   return data ? data.token : null;
 }
 async function createShareToken(patientId, facilityId) {
-  const { data, error } = await supabase.from("share_tokens").insert({ patient_id: patientId, facility_id: facilityId }).select("token").single();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+  const { data, error } = await supabase.from("share_tokens").insert({ patient_id: patientId, facility_id: facilityId, expires_at: expiresAt.toISOString() }).select("token").single();
   if (error) { console.error(error); return null; }
   return data.token;
 }
