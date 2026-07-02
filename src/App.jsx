@@ -1132,7 +1132,10 @@ const loadFacilitySettings = async (facilityId) => {
         imageContent.push({type:"text",text:buildPrompt(extracted.length,patientHistory,patientAgeGroup)});
         const resp = await fetch("/api/analyze",{
           method:"POST",
-          headers:{"Content-Type":"application/json"},
+          headers:{
+            "Content-Type":"application/json",
+            "Authorization": session ? `Bearer ${session.access_token}` : "",
+          },
           body:JSON.stringify({messages:[{role:"user",content:imageContent}]}),
         });
         setProgress(90);

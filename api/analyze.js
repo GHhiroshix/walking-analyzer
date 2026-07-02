@@ -1,11 +1,36 @@
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { messages } = req.body;
+  // ① リクエストから「証明書（トークン）」を取り出す
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ error: 'ログインが必要です' });
+  }
 
   try {
+    // ② Supabaseに接続する準備
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // ③ 証明書が本物か確認する
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !userData || !userData.user) {
+      return res.status(403).json({ error: 'ログイン情報が無効です。再度ログインしてください。' });
+    }
+
+    // ここまで来たら「本人確認OK」
+    const { messages } = req.body;
+
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
