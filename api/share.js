@@ -33,6 +33,23 @@ export default async function handler(req, res) {
       return res.status(410).json({ error: 'このリンクの有効期限が切れています。施設に新しいリンクの発行を依頼してください。' });
     }
 
+    // レート制限（同じリンクへの直近1分間のアクセス回数をチェック）
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { count: recentAccessCount } = await supabase
+      .from('share_access_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('token', token)
+      .gte('accessed_at', oneMinuteAgo);
+
+    if (recentAccessCount !== null && recentAccessCount >= 10) {
+      return res.status(429).json({ error: 'アクセスが集中しています。しばらく待ってから再度お試しください。' });
+    }
+
+    // 今回のアクセスを記録する
+    const forwardedFor = req.headers['x-forwarded-for'] || '';
+    const clientIp = forwardedFor.split(',')[0].trim() || 'unknown';
+    await supabase.from('share_access_log').insert({ token, ip_address: clientIp });
+
     // 患者情報の取得（最低限の情報のみ）
     const { data: patient, error: patientError } = await supabase
       .from('patients')
