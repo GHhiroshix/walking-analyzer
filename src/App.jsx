@@ -1708,7 +1708,7 @@ const loadFacilitySettings = async (facilityId) => {
                   return <line key={v} x1={pad} y1={y} x2={cW-pad} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>;
                 })}
                 {metricKeys.map((k,mi)=>{
-                  const pts = facilityGaitData.map((d,i)>>({
+                  const pts = facilityGaitData.map((d,i)=>({
                     x: pad+(i/(facilityGaitData.length-1))*(cW-pad*2),
                     y: d[k]!==null ? cH-pad-((d[k]-20)/(100-20))*(cH-pad*2) : null,
                   })).filter(p=>p.y!==null);
