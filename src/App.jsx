@@ -1217,7 +1217,7 @@ const loadFacilitySettings = async (facilityId) => {
       setAuthLoading(false);
     };
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:60,marginBottom:32,textAlign:"center"}}>
           <div style={{display:"inline-flex",gap:6,alignItems:"center",background:"rgba(57,224,176,0.12)",border:`1px solid rgba(57,224,176,0.25)`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
           <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>{authMode==="login"?"施設ログイン":"施設アカウント登録"}</h1>
@@ -1250,7 +1250,7 @@ const loadFacilitySettings = async (facilityId) => {
       {key:"c4",label:"本アプリの解析結果は参考情報であり、医療診断の代替ではないことを理解しています",note:"強い不安がある場合は医療機関・理学療法士にご相談ください",imp:false},
     ];
     return (
-      <div style={wrap}><GlassOrbs/><StaffManager
+      <div style={{...wrap,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center"}}><GlassOrbs/><StaffManager
         show={showStaffManager}
         onClose={() => setShowStaffManager(false)}
         theme={theme}
@@ -1263,19 +1263,21 @@ const loadFacilitySettings = async (facilityId) => {
         staffs={staffs}
         session={session}
         loadStaffs={loadStaffs}
-      /><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      />{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:16,display:"flex",justifyContent:"flex-end"}}>
           <div style={{display:"flex",gap:8}}>
   {myRole==="admin"&&<button onClick={()=>setShowStaffManager(true)} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.accent,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>👥 スタッフ管理</button>}
   <button onClick={handleLogout} style={{background:"none",border:`${C.borderW} solid ${C.border}`,color:C.muted,cursor:"pointer",fontSize:12,padding:"5px 12px",borderRadius:8,fontFamily:C.font}}>ログアウト</button>
 </div>
         </div>
-        <div style={{paddingTop:24,marginBottom:28,textAlign:"center"}}>
-          <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:20,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
-          <h1 style={{fontSize:26,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>ご利用前の<br/><span style={{color:C.accent}}>同意確認</span></h1>
-          <p style={{color:C.muted,marginTop:12,fontSize:13,lineHeight:1.8}}>本アプリは歩行動画をAIで解析します。<br/>下記をご確認のうえ、すべてにチェックをお願いします。</p>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+        <div style={{width:"100%",maxWidth:600,maxHeight:"80vh",display:"flex",flexDirection:"column",background:C.panel,borderRadius:16,border:`${C.borderW} solid ${C.border}`,overflow:"hidden"}}>
+          <div style={{paddingTop:24,paddingBottom:12,paddingLeft:20,paddingRight:20,textAlign:"center",borderBottom:`${C.borderW} solid ${C.border}`,flexShrink:0}}>
+            <div style={{display:"inline-flex",gap:6,alignItems:"center",background:C.accent+"14",border:`1px solid ${C.accent}2a`,borderRadius:100,padding:"5px 14px",marginBottom:16,fontSize:10,color:C.accent,letterSpacing:3,fontWeight:700}}>🎬 VIDEO GAIT ANALYSIS</div>
+            <h1 style={{fontSize:24,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>ご利用前の<br/><span style={{color:C.accent}}>同意確認</span></h1>
+            <p style={{color:C.muted,marginTop:10,fontSize:12,lineHeight:1.6}}>本アプリは歩行動画をAIで解析します。<br/>下記をご確認のうえ、すべてにチェックをお願いします。</p>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {ITEMS.map(({key,label,note,imp})=>{ const checked=checks[key]; return (
             <div key={key} onClick={()=>setChecks(p=>({...p,[key]:!p[key]}))} style={{display:"flex",gap:12,alignItems:"flex-start",background:checked?C.accent+"0a":C.surface,border:`${C.borderW} solid ${checked?C.accent+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
               <div style={{width:22,height:22,borderRadius:6,flexShrink:0,marginTop:1,border:`2px solid ${checked?C.accent:imp?C.amber+"88":C.muted}`,background:checked?C.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
@@ -1284,14 +1286,18 @@ const loadFacilitySettings = async (facilityId) => {
               <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,lineHeight:1.5,color:C.text}}>{imp&&<span style={{color:C.amber,fontSize:10,marginRight:4}}>★</span>}{label}</div><div style={{fontSize:11,color:C.muted,marginTop:4,lineHeight:1.6}}>{note}</div></div>
             </div>
           );})}
+            </div>
+          </div>
+          <div style={{borderTop:`${C.borderW} solid ${C.border}`,padding:"12px 16px",flexShrink:0,background:C.panel}}>
+            <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"10px 12px",marginBottom:12,fontSize:11,color:C.muted,lineHeight:1.6}}>
+              📄 Anthropicのプライバシーポリシー：<a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{color:C.accent,marginLeft:4}}>anthropic.com/privacy</a>
+            </div>
+            <button onClick={()=>allChecked&&setPhase("userSelect")} disabled={!allChecked} style={{width:"100%",padding:"12px",background:allChecked?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:10,color:allChecked?C.bgSolid:C.muted,fontSize:14,fontWeight:700,cursor:allChecked?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:C.font,boxShadow:allChecked?`0 4px 20px ${C.accent}33`:"none"}}>
+              {allChecked?"同意して次へ →":`あと ${Object.values(checks).filter(v=>!v).length} 項目確認`}
+            </button>
+            <div style={{textAlign:"center",marginTop:8,fontSize:10,color:C.muted}}>★ 重要項目</div>
+          </div>
         </div>
-        <div style={{background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:12,color:C.muted,lineHeight:1.7}}>
-          📄 Anthropicのプライバシーポリシー：<a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer" style={{color:C.accent,marginLeft:4}}>anthropic.com/privacy</a>
-        </div>
-        <button onClick={()=>allChecked&&setPhase("userSelect")} disabled={!allChecked} style={{width:"100%",padding:"15px",background:allChecked?`linear-gradient(135deg,${C.accent},${C.accentDim})`:C.border,border:"none",borderRadius:12,color:allChecked?C.bgSolid:C.muted,fontSize:15,fontWeight:700,cursor:allChecked?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:C.font,boxShadow:allChecked?`0 4px 20px ${C.accent}33`:"none"}}>
-          {allChecked?"同意して次へ →":`あと ${Object.values(checks).filter(v=>!v).length} 項目の確認が必要です`}
-        </button>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:C.muted}}>★ は特に重要な項目です</div>
       </div></div>
     );
   }
@@ -1309,7 +1315,7 @@ const loadFacilitySettings = async (facilityId) => {
       openPrintWindow(html);
     };
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>setHistoryDetail(null)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 履歴一覧に戻る</button>
           <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{formatDate(h.date)}</div>
@@ -1335,7 +1341,7 @@ const loadFacilitySettings = async (facilityId) => {
   if (phase==="historyList" && historyPatient) {
     const hist = historyPatient.history || [];
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
        <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1570,7 +1576,7 @@ const loadFacilitySettings = async (facilityId) => {
     };
 
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>{setPhase("historyList");setReportMonth(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 測定履歴に戻る</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1700,7 +1706,7 @@ const loadFacilitySettings = async (facilityId) => {
     });
 
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>施設全体の月次サマリー</h2>
@@ -1831,7 +1837,7 @@ const loadFacilitySettings = async (facilityId) => {
     });
 
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <DeleteDialog
           confirm={deleteConfirm}
           onCancel={() => setDeleteConfirm(null)}
@@ -2037,7 +2043,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
   // ── UPLOAD ────────────────────────────────────────────────────────────────
   if (phase==="upload") {
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
         <div style={{paddingTop:40,marginBottom:20}}>
           <button onClick={()=>setPhase("userSelect")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:16,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -2146,7 +2152,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
       openPrintWindow(html);
     };
     return (
-      <div style={wrap}><GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/><div style={maxW}><div style={{paddingTop:32}}>
+      <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}><div style={{paddingTop:32}}>
         {/* ヘッダー：測定履歴へ戻るボタン追加 */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -2192,7 +2198,7 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
   // ── LOADING ───────────────────────────────────────────────────────────────
   if (phase==="loading") return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-      <GlassOrbs/><ThemeToggle toggleTheme={toggleTheme} theme={theme}/>
+      <GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}
       <div style={{color:C.accent,fontSize:16,fontFamily:C.font,position:"relative",zIndex:1}}>読み込み中...</div>
     </div>
   );
