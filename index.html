@@ -10,6 +10,27 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { margin: 0; padding: 0; overflow: hidden; background: #0f1419; }
     html { margin: 0; padding: 0; }
+    
+    /* スクロール対応（iOS/Android/PC） */
+    div[style*="overflowY"] {
+      -webkit-overflow-scrolling: touch !important;
+      overflow-y: scroll !important;
+    }
+    
+    /* スクロールバーのスタイル */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(74, 222, 128, 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(74, 222, 128, 0.5);
+    }
   </style>
   </head>
   <body>

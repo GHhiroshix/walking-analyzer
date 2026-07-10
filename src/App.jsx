@@ -467,7 +467,7 @@ const StaffManager = ({
   if (!show) return null;
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:"0 16px"}}>
-      <div style={{background:theme==="dark"?"#f5f0e8":"#1a2233",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.15)":"rgba(255,255,255,0.15)"}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto",color:theme==="dark"?"#2d2416":"#ddeeff",WebkitTextFillColor:theme==="dark"?"#2d2416":"#ddeeff"}}>
+      <div style={{background:theme==="dark"?"#f5f0e8":"#1a2233",border:`1px solid ${theme==="dark"?"rgba(0,0,0,0.15)":"rgba(255,255,255,0.15)"}`,borderRadius:16,padding:"24px",width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto",WebkitOverflowScrolling:"touch",color:theme==="dark"?"#2d2416":"#ddeeff",WebkitTextFillColor:theme==="dark"?"#2d2416":"#ddeeff"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div style={{fontWeight:700,fontSize:16,color:C.text}}>👥 スタッフ管理</div>
           <button onClick={onClose} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20}}>×</button>
@@ -1276,7 +1276,7 @@ const loadFacilitySettings = async (facilityId) => {
             <h1 style={{fontSize:24,fontWeight:900,lineHeight:1.3,margin:0,color:C.text}}>ご利用前の<br/><span style={{color:C.accent}}>同意確認</span></h1>
             <p style={{color:C.muted,marginTop:10,fontSize:12,lineHeight:1.6}}>本アプリは歩行動画をAIで解析します。<br/>下記をご確認のうえ、すべてにチェックをお願いします。</p>
           </div>
-          <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+          <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"16px 20px"}}>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {ITEMS.map(({key,label,note,imp})=>{ const checked=checks[key]; return (
             <div key={key} onClick={()=>setChecks(p=>({...p,[key]:!p[key]}))} style={{display:"flex",gap:12,alignItems:"flex-start",background:checked?C.accent+"0a":C.surface,border:`${C.borderW} solid ${checked?C.accent+"55":C.border}`,borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}>
@@ -1382,7 +1382,7 @@ const loadFacilitySettings = async (facilityId) => {
           const months = Array.from(monthSet).sort().reverse();
           return (
             <div onClick={()=>setShowMonthPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
-              <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto"}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
                 <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:14}}>📅 対象月を選択</div>
                 {months.length===0?(
                   <div style={{color:C.muted,fontSize:13,textAlign:"center",padding:"20px 0"}}>測定データがありません</div>
@@ -1885,7 +1885,7 @@ const loadFacilitySettings = async (facilityId) => {
             const months = Array.from(monthSet).sort().reverse();
             return (
               <div onClick={()=>setShowSummaryMonthPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto"}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:C.bgSolid,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"20px",maxWidth:340,width:"100%",maxHeight:"70vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
                   <div style={{fontSize:15,fontWeight:900,color:C.text,marginBottom:14}}>📅 対象月を選択</div>
                   {months.length===0?(
                     <div style={{color:C.muted,fontSize:13,textAlign:"center",padding:"20px 0"}}>測定データがありません</div>
