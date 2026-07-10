@@ -1858,11 +1858,9 @@ const loadFacilitySettings = async (facilityId) => {
         />
         <div style={{paddingTop:40,marginBottom:28}}>
           <button onClick={()=>setPhase("consent")} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 同意画面に戻る</button>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-            <div>
-              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
-              <p style={{color:C.muted,fontSize:13,marginTop:8}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
-            </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>利用者を選択</h2>
+            <p style={{color:C.muted,fontSize:13,margin:0}}>初回の方は新規登録、2回目以降の方は名前を選んでください</p>
             {patients.length>0&&facilitySettings.plan==="pro"&&<button disabled={summaryLoading} onClick={async()=>{
               setSummaryLoading(true);
               const allResults = await Promise.all(patients.map(async p=>{
@@ -1872,7 +1870,7 @@ const loadFacilitySettings = async (facilityId) => {
               setSummaryAllData(allResults);
               setSummaryLoading(false);
               setShowSummaryMonthPicker(true);
-            }} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 施設月次サマリー"}</button>}
+            }} style={{alignSelf:"flex-start",padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:summaryLoading?"default":"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>{summaryLoading?"読み込み中...":"📊 施設月次サマリー"}</button>}
           </div>
           {showSummaryMonthPicker&&summaryAllData&&(()=>{
             const monthSet = new Set();
@@ -2017,18 +2015,18 @@ const isOverdue = daysSinceLastMeasurement !== null && daysSinceLastMeasurement 
               <option value="80代">80代</option>
               <option value="90代以上">90代以上</option>
             </select>
-            <div style={{display:"flex",gap:8}}>
+            <div style={{display:"flex",gap:8,width:"100%"}}>
               <input
                 value={nameInput}
                 onChange={e=>setNameInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)addNew()}}
                 placeholder="お名前（例：田中様）"
-                style={{flex:1,background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+                style={{flex:1,minWidth:0,background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
               />
               <button
                 onClick={addNew}
                 disabled={!nameInput.trim()}
-                style={{padding:"10px 16px",background:nameInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:nameInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:nameInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}
+                style={{flexShrink:0,padding:"10px 16px",background:nameInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:nameInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:nameInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}
               >登録して開始</button>
             </div>
             <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>※ ふりがなは任意ですが、同姓同名の重複防止に役立ちます</div>
