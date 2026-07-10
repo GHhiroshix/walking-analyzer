@@ -1405,18 +1405,18 @@ const loadFacilitySettings = async (facilityId) => {
         })()}
         <div style={{background:C.panel,border:`${C.borderW} solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
           <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:12}}>📝 引き継ぎメモ</div>
-          <div style={{display:"flex",gap:8,marginBottom:14}}>
+          <div style={{display:"flex",gap:8,marginBottom:14,width:"100%",boxSizing:"border-box"}}>
             <input
               value={noteInput}
               onChange={e=>setNoteInput(e.target.value)}
               onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229&&noteInput.trim()){(async()=>{await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);})();}}}
               placeholder="メモを入力（例：午前は機嫌良く歩けていました）"
-              style={{flex:1,background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
+              style={{flex:1,minWidth:0,background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,fontFamily:C.font,outline:"none"}}
             />
             <button
               onClick={async()=>{if(!noteInput.trim())return;await createPatientNote(historyPatient.id, effectiveFacilityId, myName, noteInput.trim());setNoteInput("");const notes=await getPatientNotes(historyPatient.id);setPatientNotes(notes);}}
               disabled={!noteInput.trim()}
-              style={{padding:"10px 16px",background:noteInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:noteInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:noteInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}
+              style={{padding:"10px 16px",flexShrink:0,background:noteInput.trim()?C.accent:C.border,border:"none",borderRadius:8,color:noteInput.trim()?C.bgSolid:C.muted,fontSize:13,fontWeight:700,cursor:noteInput.trim()?"pointer":"not-allowed",fontFamily:C.font,whiteSpace:"nowrap"}}
             >追加</button>
           </div>
           {patientNotes.length===0?(
