@@ -1346,11 +1346,11 @@ const loadFacilitySettings = async (facilityId) => {
           <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
-              <h2 style={{fontSize:18,fontWeight:900,margin:0,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"calc(100vw - 48px)"}}>{historyPatient.name}</h2>
+              <h2 style={{fontSize:22,fontWeight:900,margin:0,color:C.text}}>{historyPatient.name}</h2>
               <p style={{color:C.muted,fontSize:12,marginTop:4}}>{hist.length}回の測定履歴</p>
             </div>
-            {hist.length>0&&<div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{padding:"8px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>＋ 新しく測定</button>
+            {hist.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{flex:1,padding:"10px 14px",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap",textAlign:"center"}}>＋ 新しく測定</button>
             <div style={{position:"relative"}}>
                 <button onClick={()=>setShowHistoryActionsMenu(v=>!v)} style={{padding:"8px 14px",background:C.surface,border:`${C.borderW} solid ${C.border}`,borderRadius:8,color:C.mutedLight,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:C.font,whiteSpace:"nowrap"}}>⋯ その他</button>
                 {showHistoryActionsMenu&&(
