@@ -1344,9 +1344,9 @@ const loadFacilitySettings = async (facilityId) => {
       <div style={wrap}><GlassOrbs/>{phase!=="consent"&&<ThemeToggle toggleTheme={toggleTheme} theme={theme}/>}<div style={maxW}>
        <div style={{paddingTop:40,marginBottom:24}}>
           <button onClick={()=>{setPhase("userSelect");setHistoryPatient(null);}} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0,marginBottom:20,fontFamily:C.font}}>← 利用者選択に戻る</button>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <h2 style={{fontSize:20,fontWeight:900,margin:0,color:C.text,wordBreak:"keep-all"}}>{historyPatient.name}</h2>
-            <p style={{color:C.muted,fontSize:12,margin:0}}>{hist.length}回の測定履歴</p>
+          <div>
+            <h2 style={{fontSize:22,fontWeight:900,margin:"0 0 2px 0",color:C.text}}>{historyPatient.name}</h2>
+            <p style={{color:C.muted,fontSize:12,margin:"0 0 12px 0"}}>{hist.length}回の測定履歴</p>
             {hist.length>0&&<div style={{display:"flex",gap:8,width:"100%"}}>
             <button onClick={()=>{setPatientId(historyPatient.id);setPatientName(historyPatient.name);setPatientAgeGroup(historyPatient.age_group || "");setPatientHistory(hist);setPhase("upload");}} style={{flex:1,padding:"10px 0",background:`linear-gradient(135deg,${C.accent},${C.accentDim})`,border:"none",borderRadius:8,color:C.bgSolid,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:C.font,textAlign:"center"}}>＋ 新しく測定</button>
             <div style={{position:"relative"}}>
