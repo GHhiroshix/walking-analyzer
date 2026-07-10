@@ -1058,7 +1058,7 @@ const loadFacilitySettings = async (facilityId) => {
     setDeleteConfirm(null);
     if (session) await loadPatients(effectiveFacilityId);};
 
-  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:C.font,color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px",position:"relative"};
+  const wrap = {minHeight:"100vh",background:C.bg,fontFamily:C.font,color:C.text,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 16px 48px",position:"relative",overflowY:"auto",WebkitOverflowScrolling:"touch"};
   const maxW = {width:"100%",maxWidth:520,position:"relative",zIndex:1};
 
   const handleFile = useCallback((file) => {
